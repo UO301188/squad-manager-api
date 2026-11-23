@@ -1,0 +1,147 @@
+@baseUrl = http://localhost:8080/api/v1/players
+
+### =========================================================================
+### 1. CREAR JUGADORES VÁLIDOS (Esperado: 201 Created)
+### =========================================================================
+
+# Crear Jugador 1 (Por defecto debería asignarse AVAILABLE si no se envía status)
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Lamine",
+  "lastName": "Yamal",
+  "shirtNumber": 19,
+  "birthDate": "2007-07-13",
+  "position": "FORWARD"
+}
+
+###
+
+# Crear Jugador 2 (Defensa)
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Pau",
+  "lastName": "Cubarsí",
+  "shirtNumber": 2,
+  "birthDate": "2007-01-22",
+  "position": "DEFENDER",
+  "playerStatus": "AVAILABLE"
+}
+
+###
+
+# Crear Jugador 3 (Centrocampista lesionado)
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Pedri",
+  "lastName": "González",
+  "shirtNumber": 8,
+  "birthDate": "2002-11-25",
+  "position": "MIDFIELDER",
+  "playerStatus": "INJURED"
+}
+
+
+### =========================================================================
+### 2. VALIDACIONES DE DTO CON @Valid (Esperado: 400 Bad Request)
+### =========================================================================
+
+# Fallo: Nombre en blanco, dorsal > 99 (150) y fecha de nacimiento futura
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "",
+  "lastName": "Inválido",
+  "shirtNumber": 150,
+  "birthDate": "2030-01-01",
+  "position": "GOALKEEPER"
+}
+
+
+### =========================================================================
+### 3. REGLA DE NEGOCIO - DORSAL REPETIDO (Esperado: 409 Conflict)
+### =========================================================================
+
+# Fallo: El dorsal 19 ya lo tiene Lamine Yamal
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "firstName": "Otro",
+  "lastName": "Delantero",
+  "shirtNumber": 19,
+  "birthDate": "2000-05-10",
+  "position": "FORWARD",
+  "playerStatus": "AVAILABLE"
+}
+
+
+### =========================================================================
+### 4. CONSULTAS Y FILTROS (Esperado: 200 OK)
+### =========================================================================
+
+# Listar todos los jugadores
+GET {{baseUrl}}
+Accept: application/json
+
+###
+
+# Filtrar solo por posición (DEFENDER)
+GET {{baseUrl}}?position=DEFENDER
+Accept: application/json
+
+###
+
+# Filtrar por posición y estado combinados
+GET {{baseUrl}}?position=MIDFIELDER&status=INJURED
+Accept: application/json
+
+
+### =========================================================================
+### 5. CONSULTAR POR ID Y RECURSO INEXISTENTE
+### =========================================================================
+
+# Consultar jugador existente (Esperado: 200 OK)
+GET {{baseUrl}}/1
+Accept: application/json
+
+###
+
+# Consultar ID inexistente (Esperado: 404 Not Found con JSON limpio)
+GET {{baseUrl}}/999
+Accept: application/json
+
+
+### =========================================================================
+### 6. ACTUALIZAR Y ELIMINAR JUGADOR
+### =========================================================================
+
+# Actualizar jugador 1 (Cambia dorsal de 19 a 10 y mantiene sus datos -> Esperado: 200 OK)
+PUT {{baseUrl}}/1
+Content-Type: application/json
+
+{
+  "firstName": "Lamine",
+  "lastName": "Yamal",
+  "shirtNumber": 10,
+  "birthDate": "2007-07-13",
+  "position": "FORWARD",
+  "playerStatus": "AVAILABLE"
+}
+
+###
+
+# Eliminar jugador 2 (Esperado: 204 No Content sin cuerpo de respuesta)
+DELETE {{baseUrl}}/2
+
+###
+
+# Verificar que el jugador 2 ya no existe (Esperado: 404 Not Found)
+GET {{baseUrl}}/2
+Accept: application/json
