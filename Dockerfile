@@ -6,7 +6,7 @@ RUN mvn dependency:go-offline
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Etapa 2: Imagen ligera de ejecución
+# Etapa 2: Imagen ligera de ejecución.
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
