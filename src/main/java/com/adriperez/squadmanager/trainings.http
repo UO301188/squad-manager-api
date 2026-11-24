@@ -1,0 +1,66 @@
+@baseUrl = http://localhost:8080/api/v1
+
+### 0. Crear 2 jugadores de prueba en H2
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Santi", "lastName": "Cazorla", "shirtNumber": 8, "birthDate": "1984-12-13", "position": "MIDFIELDER", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Borja", "lastName": "Bastón", "shirtNumber": 9, "birthDate": "1992-08-25", "position": "FORWARD", "playerStatus": "AVAILABLE" }
+
+### 1. Crear sesión de entrenamiento (Esperado: 201 Created)
+POST {{baseUrl}}/trainings
+Content-Type: application/json
+
+{
+  "sessionDate": "2026-11-25T18:00:00",
+  "focus": "Presión tras pérdida y transiciones rápidas",
+  "durationMinutes": 90,
+  "notes": "Trabajo reducido en espacio medio"
+}
+
+### 2. Registrar asistencia válida de jugador 1 (Esperado: 201 Created)
+POST {{baseUrl}}/trainings/1/attendances
+Content-Type: application/json
+
+{
+  "playerId": 1,
+  "attendanceStatus": "PRESENT",
+  "rpe": 7
+}
+
+### 3. Fallo: Ausencia justificada sin motivo (Esperado: BusinessRuleException)
+POST {{baseUrl}}/trainings/1/attendances
+Content-Type: application/json
+
+{
+  "playerId": 2,
+  "attendanceStatus": "ABSENT_JUSTIFIED"
+}
+
+### 4. Fallo: Jugador ausente con RPE informado (Esperado: BusinessRuleException)
+POST {{baseUrl}}/trainings/1/attendances
+Content-Type: application/json
+
+{
+  "playerId": 2,
+  "attendanceStatus": "ABSENT_UNJUSTIFIED",
+  "rpe": 5
+}
+
+### 5. Registrar ausencia justificada válida de jugador 2 (Esperado: 201 Created)
+POST {{baseUrl}}/trainings/1/attendances
+Content-Type: application/json
+
+{
+  "playerId": 2,
+  "attendanceStatus": "ABSENT_JUSTIFIED",
+  "absenceReason": "Exámenes universitarios"
+}
+
+### 6. Consultar ficha completa de la sesión con asistencias (Esperado: 200 OK)
+GET {{baseUrl}}/trainings/1
+Accept: application/json
