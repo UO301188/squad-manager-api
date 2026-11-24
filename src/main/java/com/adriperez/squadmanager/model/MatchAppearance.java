@@ -25,9 +25,9 @@ public class MatchAppearance {
     @Column(nullable = false)
     private CallUpStatus callUpStatus;
 
-    private int goals;
-    private int assists;
-    private int yellowCards;
+    private Integer goals;
+    private Integer assists;
+    private Integer yellowCards;
     private boolean redCard;
     private Integer minutesPlayed;
 
@@ -61,27 +61,27 @@ public class MatchAppearance {
         this.callUpStatus = callUpStatus;
     }
 
-    public int getGoals() {
+    public Integer getGoals() {
         return goals;
     }
 
-    public void setGoals(int goals) {
+    public void setGoals(Integer goals) {
         this.goals = goals;
     }
 
-    public int getAssists() {
+    public Integer getAssists() {
         return assists;
     }
 
-    public void setAssists(int assists) {
+    public void setAssists(Integer assists) {
         this.assists = assists;
     }
 
-    public int getYellowCards() {
+    public Integer getYellowCards() {
         return yellowCards;
     }
 
-    public void setYellowCards(int yellowCards) {
+    public void setYellowCards(Integer yellowCards) {
         this.yellowCards = yellowCards;
     }
 
