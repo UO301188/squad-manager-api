@@ -30,7 +30,7 @@ public class Match {
     public Match() {
     }
 
-    public Match(String opponent, LocalDateTime matchDate, String competition, Boolean homeMatch, int goalsFor, int goalsAgainst) {
+    public Match(String opponent, LocalDateTime matchDate, String competition, Boolean homeMatch, Integer goalsFor, Integer goalsAgainst) {
         this.opponent = opponent;
         this.matchDate = matchDate;
         this.competition = competition;
@@ -86,19 +86,19 @@ public class Match {
         this.homeMatch = homeMatch;
     }
 
-    public int getGoalsFor() {
+    public Integer getGoalsFor() {
         return goalsFor;
     }
 
-    public void setGoalsFor(int goalsFor) {
+    public void setGoalsFor(Integer goalsFor) {
         this.goalsFor = goalsFor;
     }
 
-    public int getGoalsAgainst() {
+    public Integer getGoalsAgainst() {
         return goalsAgainst;
     }
 
-    public void setGoalsAgainst(int goalsAgainst) {
+    public void setGoalsAgainst(Integer goalsAgainst) {
         this.goalsAgainst = goalsAgainst;
     }
 

@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
+    <title>SquadManager Pro | Plataforma de Gestión Deportiva</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        pitch: {
+                            950: '#070b14',
+                            900: '#0b1120',
+                            850: '#111827',
+                            800: '#162032',
+                            700: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons & Chart.js -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="bg-pitch-950 text-slate-100 font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+
+<!-- Contenedor Global de Notificaciones Toast -->
+<div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none"></div>
+
+<div class="min-h-screen flex flex-col lg:flex-row">
+    <!-- Sidebar Navegación -->
+    <!-- Sidebar Navegación -->
+    <aside class="w-full lg:w-72 bg-pitch-900 border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col justify-between shrink-0">
+        <div>
+            <!-- Logo / Marca -->
+            <div class="p-6 flex items-center justify-between border-b border-slate-800/80">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <i data-lucide="shield-check" class="w-6 h-6 text-slate-950 stroke-[2.5]"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-lg tracking-tight text-white leading-none">Squad<span class="text-emerald-400">Manager</span></h1>
+                        <span class="text-[11px] font-mono uppercase tracking-widest text-slate-400">Tactical Suite v1.0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menú -->
+            <nav class="p-4 flex lg:flex-col gap-1.5 overflow-x-auto">
+                <button data-view="dashboard" class="nav-btn active flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Dashboard General</span>
+                </button>
+                <button data-view="players" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    <span>Plantilla</span>
+                </button>
+                <button data-view="matches" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap">
+                    <i data-lucide="trophy" class="w-4 h-4"></i>
+                    <span>Partidos y Actas</span>
+                </button>
+                <button data-view="trainings" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap">
+                    <i data-lucide="activity" class="w-4 h-4"></i>
+                    <span>Entrenamientos</span>
+                </button>
+                <button data-view="analytics" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                    <span>Analítica y Rendimiento</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Estado API Backend -->
+        <div class="hidden lg:block p-4 m-4 rounded-xl bg-pitch-850 border border-slate-800/80">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-medium text-slate-400">Spring Boot API</span>
+                <span id="api-status-badge" class="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-400">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE
+                    </span>
+            </div>
+            <p class="text-[11px] text-slate-500">Conectado a <code class="text-slate-300">/api/v1</code></p>
+        </div>
+    </aside>
+
+    <!-- Contenido Principal -->
+    <main class="flex-1 flex flex-col min-w-0">
+        <!-- Header Superior -->
+        <header class="bg-pitch-900/60 backdrop-blur-md border-b border-slate-800/80 px-6 py-4 sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h2 id="page-title" class="text-xl font-bold text-white tracking-tight">Dashboard General</h2>
+                <p id="page-subtitle" class="text-xs text-slate-400 mt-0.5">Visión global del estado físico, competitivo y carga de trabajo del equipo</p>
+            </div>
+            <div id="header-actions" class="flex items-center gap-3"></div>
+        </header>
+
+        <!-- Cuerpo Dinámico -->
+        <div class="p-6 max-w-7xl w-full mx-auto space-y-6">
+
+            <!-- ==================== VISTA 1: DASHBOARD ==================== -->
+            <section id="view-dashboard" class="space-y-6">
+                <!-- KPIs -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div class="glass-card p-5 rounded-2xl">
+                        <div class="flex items-center justify-between text-slate-400 mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Plantilla Activa</span>
+                            <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400"><i data-lucide="users" class="w-4 h-4"></i></div>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="kpi-total-players" class="text-3xl font-extrabold font-mono text-white">-</span>
+                            <span id="kpi-available-players" class="text-xs text-emerald-400 font-medium">- disponibles</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl">
+                        <div class="flex items-center justify-between text-slate-400 mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Partidos Registrados</span>
+                            <div class="p-2 rounded-lg bg-blue-500/10 text-blue-400"><i data-lucide="calendar" class="w-4 h-4"></i></div>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="kpi-total-matches" class="text-3xl font-extrabold font-mono text-white">-</span>
+                            <span id="kpi-next-match" class="text-xs text-blue-400 font-medium truncate">-</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl">
+                        <div class="flex items-center justify-between text-slate-400 mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Producción Ofensiva</span>
+                            <div class="p-2 rounded-lg bg-amber-500/10 text-amber-400"><i data-lucide="flame" class="w-4 h-4"></i></div>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="kpi-total-goals" class="text-3xl font-extrabold font-mono text-white">-</span>
+                            <span id="kpi-total-assists" class="text-xs text-amber-400 font-medium">- asistencias</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl">
+                        <div class="flex items-center justify-between text-slate-400 mb-3">
+                            <span class="text-xs font-semibold uppercase tracking-wider">Compromiso Entrenos</span>
+                            <div class="p-2 rounded-lg bg-purple-500/10 text-purple-400"><i data-lucide="heart-pulse" class="w-4 h-4"></i></div>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="kpi-avg-attendance" class="text-3xl font-extrabold font-mono text-white">-</span>
+                            <span id="kpi-avg-rpe" class="text-xs text-purple-400 font-medium">RPE medio: -</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráficos -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="glass-card p-5 rounded-2xl lg:col-span-2">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="text-sm font-bold text-white">Top Participación en Gol (Goles + Asistencias)</h3>
+                                <p class="text-xs text-slate-400">Rendimiento acumulado en competición oficial</p>
+                            </div>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="chart-contributions"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl">
+                        <div class="mb-4">
+                            <h3 class="text-sm font-bold text-white">Estado Médico y Disciplinario</h3>
+                            <p class="text-xs text-slate-400">Disponibilidad actual de la plantilla</p>
+                        </div>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas id="chart-status"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen inferior -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-card p-5 rounded-2xl">
+                        <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                            <i data-lucide="trophy" class="w-4 h-4 text-emerald-400"></i> Últimos / Próximos Encuentros
+                        </h3>
+                        <div id="dashboard-matches-list" class="space-y-3"></div>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl">
+                        <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                            <i data-lucide="award" class="w-4 h-4 text-amber-400"></i> Líderes de Minutos Disputados
+                        </h3>
+                        <div id="dashboard-minutes-list" class="space-y-3"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== VISTA 2: PLANTILLA ==================== -->
+            <section id="view-players" class="hidden space-y-5">
+                <!-- Barra de filtros -->
+                <div class="glass-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex flex-wrap items-center gap-2" id="position-filters">
+                        <button data-pos="" class="filter-chip active">Todos</button>
+                        <button data-pos="GOALKEEPER" class="filter-chip">Porteros</button>
+                        <button data-pos="DEFENDER" class="filter-chip">Defensas</button>
+                        <button data-pos="MIDFIELDER" class="filter-chip">Centrocampistas</button>
+                        <button data-pos="FORWARD" class="filter-chip">Delanteros</button>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                        <select id="filter-player-status" class="input-dark text-xs py-2 px-3 rounded-xl">
+                            <option value="">Cualquier estado</option>
+                            <option value="AVAILABLE">Disponible</option>
+                            <option value="INJURED">Lesionado</option>
+                            <option value="SUSPENDED">Sancionado</option>
+                            <option value="UNAVAILABLE">No disponible</option>
+                        </select>
+
+                        <div class="relative flex-1 sm:w-56">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                            <input type="text" id="search-player-input" placeholder="Buscar nombre o dorsal..." class="input-dark w-full pl-9 pr-3 py-2 text-xs rounded-xl">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid de Jugadores -->
+                <div id="players-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </section>
+
+            <!-- ==================== VISTA 3: PARTIDOS ==================== -->
+            <section id="view-matches" class="hidden space-y-5">
+                <div id="matches-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+            </section>
+
+            <!-- ==================== VISTA 4: ENTRENAMIENTOS ==================== -->
+            <section id="view-trainings" class="hidden space-y-5">
+                <div id="trainings-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+            </section>
+
+            <!-- ==================== VISTA 5: ANALÍTICA ==================== -->
+            <section id="view-analytics" class="hidden space-y-5">
+                <div class="glass-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-slate-400 font-medium">Posición:</label>
+                        <select id="analytics-pos-filter" class="input-dark text-xs py-2 px-3 rounded-xl">
+                            <option value="">Todas las demarcaciones</option>
+                            <option value="GOALKEEPER">Porteros (POR)</option>
+                            <option value="DEFENDER">Defensas (DEF)</option>
+                            <option value="MIDFIELDER">Centrocampistas (MED)</option>
+                            <option value="FORWARD">Delanteros (DEL)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-slate-400 font-medium">Ordenar por:</label>
+                        <select id="analytics-sort-select" class="input-dark text-xs py-2 px-3 rounded-xl">
+                            <option value="totalMinutes">Minutos jugados</option>
+                            <option value="totalGoals">Goles totales</option>
+                            <option value="goalContributions">Goles + Asistencias</option>
+                            <option value="goalsPer90">Goles / 90 min</option>
+                            <option value="attendancePercentage">% Asistencia entrenos</option>
+                            <option value="averageRpe">RPE Medio</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                            <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-pitch-900/70">
+                                <th class="py-3.5 px-4">Dorsal</th>
+                                <th class="py-3.5 px-4">Jugador</th>
+                                <th class="py-3.5 px-4">Estado</th>
+                                <th class="py-3.5 px-4 text-center">PJ / Conv</th>
+                                <th class="py-3.5 px-4 text-right">Minutos</th>
+                                <th class="py-3.5 px-4 text-center">G</th>
+                                <th class="py-3.5 px-4 text-center">A</th>
+                                <th class="py-3.5 px-4 text-center">G/90</th>
+                                <th class="py-3.5 px-4 text-center">Tarjetas</th>
+                                <th class="py-3.5 px-4">Asistencia Entrenos</th>
+                                <th class="py-3.5 px-4 text-center">RPE</th>
+                                <th class="py-3.5 px-4 text-right">Detalle</th>
+                            </tr>
+                            </thead>
+                            <tbody id="analytics-table-body" class="divide-y divide-slate-800/60 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+</div>
+
+<!-- ==================== MODAL JUGADOR (CREAR / EDITAR) ==================== -->
+<div id="modal-player" class="modal-backdrop hidden">
+    <div class="modal-box max-w-lg">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <h3 id="modal-player-title" class="text-lg font-bold text-white">Nuevo Jugador</h3>
+            <button onclick="closeModal('modal-player')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form id="form-player" class="space-y-4 mt-4">
+            <input type="hidden" id="player-id">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Nombre *</label>
+                    <input type="text" id="player-firstName" required class="input-dark w-full px-3 py-2 rounded-xl text-sm" placeholder="Ej. Santi">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Apellidos *</label>
+                    <input type="text" id="player-lastName" required class="input-dark w-full px-3 py-2 rounded-xl text-sm" placeholder="Ej. Cazorla">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Dorsal (1-99) *</label>
+                    <input type="number" id="player-shirtNumber" min="1" max="99" required class="input-dark w-full px-3 py-2 rounded-xl text-sm font-mono" placeholder="8">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Fecha de Nacimiento *</label>
+                    <input type="date" id="player-birthDate" required class="input-dark w-full px-3 py-2 rounded-xl text-sm">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Demarcación *</label>
+                    <select id="player-position" required class="input-dark w-full px-3 py-2 rounded-xl text-sm">
+                        <option value="GOALKEEPER">Portero</option>
+                        <option value="DEFENDER">Defensa</option>
+                        <option value="MIDFIELDER">Centrocampista</option>
+                        <option value="FORWARD">Delantero</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Estado *</label>
+                    <select id="player-status" required class="input-dark w-full px-3 py-2 rounded-xl text-sm">
+                        <option value="AVAILABLE">Disponible</option>
+                        <option value="INJURED">Lesionado</option>
+                        <option value="SUSPENDED">Sancionado</option>
+                        <option value="UNAVAILABLE">No disponible</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                <button type="button" onclick="closeModal('modal-player')" class="btn-secondary">Cancelar</button>
+                <button type="submit" class="btn-primary">Guardar Jugador</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== MODAL NUEVO PARTIDO ==================== -->
+<div id="modal-match" class="modal-backdrop hidden">
+    <div class="modal-box max-w-lg">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <h3 class="text-lg font-bold text-white">Programar Nuevo Partido</h3>
+            <button onclick="closeModal('modal-match')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form id="form-match" class="space-y-4 mt-4">
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Equipo Rival *</label>
+                <input type="text" id="match-opponent" required class="input-dark w-full px-3 py-2 rounded-xl text-sm" placeholder="Ej. Real Sporting">
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Fecha y Hora *</label>
+                    <input type="datetime-local" id="match-date" required class="input-dark w-full px-3 py-2 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Competición *</label>
+                    <input type="text" id="match-competition" required class="input-dark w-full px-3 py-2 rounded-xl text-sm" placeholder="Liga / Copa">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Condición *</label>
+                <select id="match-home" class="input-dark w-full px-3 py-2 rounded-xl text-sm">
+                    <option value="true">Local (En casa)</option>
+                    <option value="false">Visitante (Fuera)</option>
+                </select>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                <button type="button" onclick="closeModal('modal-match')" class="btn-secondary">Cancelar</button>
+                <button type="submit" class="btn-primary">Crear Partido</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== MODAL MATCH CENTER (CONVOCATORIA Y ACTA) ==================== -->
+<div id="modal-match-detail" class="modal-backdrop hidden">
+    <div class="modal-box max-w-4xl max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800 shrink-0">
+            <div>
+                <span id="md-competition" class="text-[11px] font-mono uppercase tracking-wider text-emerald-400">COMPETICIÓN</span>
+                <h3 id="md-title" class="text-xl font-extrabold text-white">vs Rival</h3>
+            </div>
+            <button onclick="closeModal('modal-match-detail')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="overflow-y-auto pr-1 space-y-6 mt-4 flex-1">
+            <!-- Marcador -->
+            <div class="bg-pitch-900/90 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Marcador Oficial</h4>
+                    <p id="md-date" class="text-xs text-slate-400 mt-0.5">-</p>
+                </div>
+                <form id="form-match-result" class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-400">Favor</span>
+                        <input type="number" id="md-goalsFor" min="0" required class="input-dark w-16 text-center font-mono font-bold text-lg py-1.5 rounded-xl">
+                    </div>
+                    <span class="text-slate-500 font-bold">-</span>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="md-goalsAgainst" min="0" required class="input-dark w-16 text-center font-mono font-bold text-lg py-1.5 rounded-xl">
+                        <span class="text-xs text-slate-400">Contra</span>
+                    </div>
+                    <button type="submit" class="btn-primary text-xs py-2 px-3">Guardar Marcador</button>
+                </form>
+            </div>
+
+            <!-- Añadir Jugador a Convocatoria -->
+            <div class="bg-pitch-900/90 border border-slate-800 rounded-2xl p-4">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">Añadir Jugador a la Convocatoria</h4>
+                <form id="form-callup" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                    <div class="sm:col-span-6">
+                        <select id="callup-player-select" required class="input-dark w-full px-3 py-2 rounded-xl text-xs"></select>
+                    </div>
+                    <div class="sm:col-span-4">
+                        <select id="callup-status-select" required class="input-dark w-full px-3 py-2 rounded-xl text-xs">
+                            <option value="STARTER">Titular (STARTER)</option>
+                            <option value="SUBSTITUTE">Suplente (SUBSTITUTE)</option>
+                            <option value="NOT_CALLED">No convocado (NOT_CALLED)</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <button type="submit" class="btn-primary w-full py-2 text-xs justify-center">Convocar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Subformulario Editar Acta Individual (Oculto por defecto) -->
+            <div id="edit-appearance-box" class="hidden bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 id="edit-app-title" class="text-xs font-bold uppercase tracking-wider text-emerald-400">Editar Acta Post-Partido</h4>
+                    <button type="button" onclick="hideAppearanceEditor()" class="text-xs text-slate-400 hover:text-white">Cerrar</button>
+                </div>
+                <form id="form-appearance-stats" class="grid grid-cols-2 sm:grid-cols-7 gap-3 items-end">
+                    <input type="hidden" id="edit-app-playerId">
+                    <div class="col-span-2">
+                        <label class="block text-[11px] text-slate-400 mb-1">Rol</label>
+                        <select id="edit-app-status" class="input-dark w-full px-2.5 py-1.5 rounded-lg text-xs">
+                            <option value="STARTER">Titular</option>
+                            <option value="SUBSTITUTE">Suplente</option>
+                            <option value="NOT_CALLED">No convocado</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">Minutos</label>
+                        <input type="number" id="edit-app-minutes" min="0" max="120" required class="input-dark w-full px-2.5 py-1.5 rounded-lg text-xs font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">Goles</label>
+                        <input type="number" id="edit-app-goals" min="0" required class="input-dark w-full px-2.5 py-1.5 rounded-lg text-xs font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">Asist.</label>
+                        <input type="number" id="edit-app-assists" min="0" required class="input-dark w-full px-2.5 py-1.5 rounded-lg text-xs font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">Amarillas</label>
+                        <input type="number" id="edit-app-yellows" min="0" max="2" required class="input-dark w-full px-2.5 py-1.5 rounded-lg text-xs font-mono">
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <label class="inline-flex items-center gap-1.5 text-xs text-rose-400 cursor-pointer">
+                            <input type="checkbox" id="edit-app-red" class="rounded bg-slate-800 border-slate-700 text-rose-500"> Roja
+                        </label>
+                        <button type="submit" class="btn-primary py-1.5 px-3 text-xs">OK</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tabla Convocados -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Convocatoria y Estadísticas del Partido</h4>
+                    <span id="md-starters-count" class="text-xs font-mono text-emerald-400">0 / 11 Titulares</span>
+                </div>
+                <div class="border border-slate-800 rounded-xl overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                        <tr class="bg-pitch-900 border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                            <th class="py-2.5 px-3">#</th>
+                            <th class="py-2.5 px-3">Jugador</th>
+                            <th class="py-2.5 px-3">Rol</th>
+                            <th class="py-2.5 px-3 text-center">Min</th>
+                            <th class="py-2.5 px-3 text-center">Goles</th>
+                            <th class="py-2.5 px-3 text-center">Asist</th>
+                            <th class="py-2.5 px-3 text-center">Tarjetas</th>
+                            <th class="py-2.5 px-3 text-right">Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody id="md-appearances-body" class="divide-y divide-slate-800/60"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL NUEVO ENTRENAMIENTO ==================== -->
+<div id="modal-training" class="modal-backdrop hidden">
+    <div class="modal-box max-w-lg">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <h3 class="text-lg font-bold text-white">Nueva Sesión de Entrenamiento</h3>
+            <button onclick="closeModal('modal-training')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <form id="form-training" class="space-y-4 mt-4">
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Objetivo Táctico / Físico *</label>
+                <input type="text" id="training-focus" required class="input-dark w-full px-3 py-2 rounded-xl text-sm" placeholder="Ej. Transiciones defensa-ataque">
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Fecha y Hora *</label>
+                    <input type="datetime-local" id="training-date" required class="input-dark w-full px-3 py-2 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Duración (15-240 min) *</label>
+                    <input type="number" id="training-duration" min="15" max="240" value="90" required class="input-dark w-full px-3 py-2 rounded-xl text-sm font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Notas del Cuerpo Técnico</label>
+                <textarea id="training-notes" rows="3" class="input-dark w-full px-3 py-2 rounded-xl text-sm" placeholder="Observaciones de carga o tareas..."></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                <button type="button" onclick="closeModal('modal-training')" class="btn-secondary">Cancelar</button>
+                <button type="submit" class="btn-primary">Crear Sesión</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== MODAL CONTROL ASISTENCIA ENTRENAMIENTO ==================== -->
+<div id="modal-training-detail" class="modal-backdrop hidden">
+    <div class="modal-box max-w-3xl max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800 shrink-0">
+            <div>
+                <span id="td-date" class="text-[11px] font-mono text-emerald-400">FECHA</span>
+                <h3 id="td-focus" class="text-lg font-bold text-white">Objetivo Sesión</h3>
+            </div>
+            <button onclick="closeModal('modal-training-detail')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="overflow-y-auto space-y-5 mt-4 flex-1">
+            <!-- Formulario Pasar Lista / Editar Asistencia -->
+            <div class="bg-pitch-900/90 border border-slate-800 rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 id="att-form-title" class="text-xs font-bold uppercase tracking-wider text-slate-300">Registrar Asistencia y Carga (RPE)</h4>
+                    <button type="button" id="att-cancel-edit" onclick="resetAttendanceForm()" class="hidden text-xs text-amber-400 hover:underline">Cancelar edición</button>
+                </div>
+                <form id="form-attendance" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                    <input type="hidden" id="att-is-edit" value="false">
+                    <div class="sm:col-span-4">
+                        <label class="block text-[11px] text-slate-400 mb-1">Jugador</label>
+                        <select id="att-player-select" required class="input-dark w-full px-3 py-2 rounded-xl text-xs"></select>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-[11px] text-slate-400 mb-1">Asistencia</label>
+                        <select id="att-status-select" required class="input-dark w-full px-3 py-2 rounded-xl text-xs">
+                            <option value="PRESENT">Presente</option>
+                            <option value="ABSENT_JUSTIFIED">Ausencia Justificada</option>
+                            <option value="ABSENT_UNJUSTIFIED">Ausencia Injustificada</option>
+                            <option value="INJURED_RECOVERY">Readaptación Lesión</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-[11px] text-slate-400 mb-1">Motivo (si ausente)</label>
+                        <input type="text" id="att-reason" class="input-dark w-full px-3 py-2 rounded-xl text-xs" placeholder="Opcional...">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-[11px] text-slate-400 mb-1">RPE (1-10)</label>
+                        <input type="number" id="att-rpe" min="1" max="10" class="input-dark w-full px-3 py-2 rounded-xl text-xs font-mono" placeholder="1-10">
+                    </div>
+                    <div class="sm:col-span-12 flex justify-end">
+                        <button type="submit" id="att-submit-btn" class="btn-primary py-2 px-4 text-xs">Registrar Asistencia</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Lista Asistencias -->
+            <div class="border border-slate-800 rounded-xl overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                    <tr class="bg-pitch-900 border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                        <th class="py-2.5 px-3">Jugador</th>
+                        <th class="py-2.5 px-3">Estado</th>
+                        <th class="py-2.5 px-3">Observación / Motivo</th>
+                        <th class="py-2.5 px-3 text-center">RPE</th>
+                        <th class="py-2.5 px-3 text-right">Editar</th>
+                    </tr>
+                    </thead>
+                    <tbody id="td-attendances-body" class="divide-y divide-slate-800/60"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL FICHA INDIVIDUAL DE ESTADÍSTICAS ==================== -->
+<div id="modal-player-stats" class="modal-backdrop hidden">
+    <div class="modal-box max-w-xl">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <div id="ps-dorsal" class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono font-extrabold text-lg flex items-center justify-center">8</div>
+                <div>
+                    <h3 id="ps-name" class="text-lg font-bold text-white">Nombre Jugador</h3>
+                    <p id="ps-meta" class="text-xs text-slate-400">Posición · Estado</p>
+                </div>
+            </div>
+            <button onclick="closeModal('modal-player-stats')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div id="ps-content" class="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

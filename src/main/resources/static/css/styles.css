@@ -1,0 +1,149 @@
+/* Estilos personalizados SquadManager Pro */
+
+.glass-card {
+    background: linear-gradient(145deg, rgba(22, 32, 50, 0.72), rgba(15, 23, 42, 0.88));
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(12px);
+}
+
+.nav-btn {
+    color: #94a3b8;
+}
+
+.nav-btn:hover {
+    color: #f8fafc;
+    background-color: rgba(30, 41, 59, 0.6);
+}
+
+.nav-btn.active {
+    color: #34d399;
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.14), rgba(16, 185, 129, 0.03));
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.input-dark {
+    background-color: #0b1120;
+    border: 1px solid #1e293b;
+    color: #f1f5f9;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-dark:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #022c22;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    padding: 0.55rem 1rem;
+    border-radius: 0.75rem;
+    transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 6px 20px -4px rgba(16, 185, 129, 0.45);
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background-color: #1e293b;
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    padding: 0.55rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #334155;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background-color: #334155;
+}
+
+.filter-chip {
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #94a3b8;
+    background-color: #0b1120;
+    border: 1px solid #1e293b;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.filter-chip:hover {
+    color: #f8fafc;
+    border-color: #334155;
+}
+
+.filter-chip.active {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+/* Modales */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background-color: rgba(2, 6, 23, 0.78);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: fadeIn 0.18s ease-out;
+}
+
+.modal-backdrop.hidden {
+    display: none;
+}
+
+.modal-box {
+    width: 100%;
+    background-color: #111827;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar discreta */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #0b1120;
+}
+::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+}
