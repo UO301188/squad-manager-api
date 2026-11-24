@@ -1,6 +1,8 @@
 package com.adriperez.squadmanager.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,6 +37,13 @@ public class Match {
         this.homeMatch = homeMatch;
         this.goalsFor = goalsFor;
         this.goalsAgainst = goalsAgainst;
+    }
+
+    public Match(@NotBlank String opponent, @NotNull LocalDateTime matchDate, @NotBlank String competition, @NotNull Boolean homeMatch) {
+        this.opponent = opponent;
+        this.matchDate = matchDate;
+        this.competition = competition;
+        this.homeMatch = homeMatch;
     }
 
     public void setId(Long id) {

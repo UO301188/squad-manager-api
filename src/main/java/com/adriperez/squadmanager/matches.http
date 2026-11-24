@@ -1,0 +1,303 @@
+@baseUrl = http://localhost:8080/api/v1
+
+### =========================================================================
+### 0. PREPARACIÓN DE PLANTILLA EN H2 (1 lesionado + 12 disponibles)
+### =========================================================================
+
+# Jugador ID 1 -> LESIONADO (para probar bloqueo en convocatoria)
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{
+  "firstName": "Pedri",
+  "lastName": "González",
+  "shirtNumber": 8,
+  "birthDate": "2002-11-25",
+  "position": "MIDFIELDER",
+  "playerStatus": "INJURED"
+}
+
+###
+
+# Jugadores ID 2 al 12 -> 11 TITULARES DISPONIBLES
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Joan", "lastName": "García", "shirtNumber": 1, "birthDate": "2001-05-04", "position": "GOALKEEPER", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Jules", "lastName": "Koundé", "shirtNumber": 23, "birthDate": "1998-11-12", "position": "DEFENDER", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Pau", "lastName": "Cubarsí", "shirtNumber": 2, "birthDate": "2007-01-22", "position": "DEFENDER", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Iñigo", "lastName": "Martínez", "shirtNumber": 5, "birthDate": "1991-05-17", "position": "DEFENDER", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Alejandro", "lastName": "Balde", "shirtNumber": 3, "birthDate": "2003-10-18", "position": "DEFENDER", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Marc", "lastName": "Casadó", "shirtNumber": 17, "birthDate": "2003-09-14", "position": "MIDFIELDER", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Dani", "lastName": "Olmo", "shirtNumber": 20, "birthDate": "1998-05-07", "position": "MIDFIELDER", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Gavi", "lastName": "Páez", "shirtNumber": 6, "birthDate": "2004-08-05", "position": "MIDFIELDER", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Lamine", "lastName": "Yamal", "shirtNumber": 19, "birthDate": "2007-07-13", "position": "FORWARD", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Raphinha", "lastName": "Belloli", "shirtNumber": 11, "birthDate": "1996-12-14", "position": "FORWARD", "playerStatus": "AVAILABLE" }
+###
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Robert", "lastName": "Lewandowski", "shirtNumber": 9, "birthDate": "1988-08-21", "position": "FORWARD", "playerStatus": "AVAILABLE" }
+
+###
+
+# Jugador ID 13 -> Jugador 12 disponible (para probar límite de titulares y suplentes)
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Fermín", "lastName": "López", "shirtNumber": 16, "birthDate": "2003-05-11", "position": "MIDFIELDER", "playerStatus": "AVAILABLE" }
+
+
+### =========================================================================
+### 1. CREACIÓN Y LISTADO DE PARTIDOS
+### =========================================================================
+
+# Crear Partido ID 1 (Esperado: 201 Created, goalsFor y goalsAgainst en null)
+POST {{baseUrl}}/matches
+Content-Type: application/json
+
+{
+  "opponent": "Real Oviedo",
+  "matchDate": "2026-12-06T18:30:00",
+  "competition": "Liga",
+  "homeMatch": true
+}
+
+###
+
+# Crear Partido ID 2 con fecha anterior para verificar ordenación ascendente
+POST {{baseUrl}}/matches
+Content-Type: application/json
+
+{
+  "opponent": "Real Sporting",
+  "matchDate": "2026-11-29T16:15:00",
+  "competition": "Copa",
+  "homeMatch": false
+}
+
+###
+
+# Listar calendario ordenado por fecha (Esperado: 200 OK, primero ID 2 y luego ID 1)
+GET {{baseUrl}}/matches
+Accept: application/json
+
+
+### =========================================================================
+### 2. CONVOCATORIAS Y REGLAS DE NEGOCIO (Sobre Partido ID 1)
+### =========================================================================
+
+# Fallo: Convocar a jugador lesionado ID 1 (Esperado: 400 o 409 según tu GlobalExceptionHandler)
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{
+  "playerId": 1,
+  "callUpStatus": "STARTER"
+}
+
+###
+
+# Convocar los 11 titulares válidos (Jugadores ID 2 al 12 -> Esperado: 201 Created)
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 2, "callUpStatus": "STARTER" }
+###
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 3, "callUpStatus": "STARTER" }
+###
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 4, "callUpStatus": "STARTER" }
+###
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 5, "callUpStatus": "STARTER" }
+###
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 6, "callUpStatus": "STARTER" }
+###
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 7, "callUpStatus": "STARTER" }
+###
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 8, "callUpStatus": "STARTER" }
+###
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 9, "callUpStatus": "STARTER" }
+###
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 10, "callUpStatus": "STARTER" }
+###
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 11, "callUpStatus": "STARTER" }
+###
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 12, "callUpStatus": "STARTER" }
+
+###
+
+# Fallo: Intentar meter al jugador 13 como titular nº 12 (Esperado: BusinessRuleException)
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{
+  "playerId": 13,
+  "callUpStatus": "STARTER"
+}
+
+###
+
+# Convocar al jugador 13 como SUPLENTE (Esperado: 201 Created)
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{
+  "playerId": 13,
+  "callUpStatus": "SUBSTITUTE"
+}
+
+###
+
+# Fallo: Intentar convocar dos veces al jugador 2 en el mismo partido
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{
+  "playerId": 2,
+  "callUpStatus": "SUBSTITUTE"
+}
+
+
+### =========================================================================
+### 3. ACTA POST-PARTIDO Y COHERENCIA DE ESTADÍSTICAS
+### =========================================================================
+
+# Fallo: Jugador 13 con 0 minutos pero registrando 1 gol (Esperado: BusinessRuleException)
+PUT {{baseUrl}}/matches/1/appearances/13
+Content-Type: application/json
+
+{
+  "callUpStatus": "SUBSTITUTE",
+  "minutesPlayed": 0,
+  "goals": 1,
+  "assists": 0,
+  "yellowCards": 0,
+  "redCard": false
+}
+
+###
+
+# Acta válida para jugador 10 (Titular, 90 min, 2 goles, 1 tarjeta amarilla -> Esperado: 200 OK)
+PUT {{baseUrl}}/matches/1/appearances/10
+Content-Type: application/json
+
+{
+  "callUpStatus": "STARTER",
+  "minutesPlayed": 90,
+  "goals": 2,
+  "assists": 0,
+  "yellowCards": 1,
+  "redCard": false
+}
+
+###
+
+# Acta válida para jugador 13 (Suplente que entra 25 min y da 1 asistencia -> Esperado: 200 OK)
+PUT {{baseUrl}}/matches/1/appearances/13
+Content-Type: application/json
+
+{
+  "callUpStatus": "SUBSTITUTE",
+  "minutesPlayed": 25,
+  "goals": 0,
+  "assists": 1,
+  "yellowCards": 0,
+  "redCard": false
+}
+
+
+### =========================================================================
+### 4. MARCADOR FINAL, FICHA DETALLADA (N+1 CHECK) Y BAJA DE CONVOCATORIA
+### =========================================================================
+
+# Actualizar marcador del partido 1 (Esperado: 200 OK)
+PATCH {{baseUrl}}/matches/1/result
+Content-Type: application/json
+
+{
+  "goalsFor": 2,
+  "goalsAgainst": 1
+}
+
+###
+
+# Obtener detalle completo del partido 1 (Esperado: 200 OK con 12 convocados y 1 sola SELECT en consola)
+GET {{baseUrl}}/matches/1
+Accept: application/json
+
+###
+
+# Eliminar al jugador 13 de la convocatoria (Esperado: 204 No Content)
+DELETE {{baseUrl}}/matches/1/appearances/13
+
+###
+
+# Consultar partido inexistente (Esperado: 404 Not Found)
+GET {{baseUrl}}/matches/999
+Accept: application/json
