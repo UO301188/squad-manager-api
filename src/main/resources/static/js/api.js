@@ -1,19 +1,27 @@
-/**
- * Cliente HTTP centralizado para comunicarse con la API REST de Spring Boot (/api/v1)
- */
 const API_BASE = '/api/v1';
 
 async function httpRequest(endpoint, options = {}) {
+    const token = localStorage.getItem('squad_token');
+    const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+
     const config = {
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            ...authHeader,
             ...(options.headers || {})
         },
         ...options
     };
 
     const response = await fetch(`${API_BASE}${endpoint}`, config);
+
+    if (response.status === 401 && !endpoint.startsWith('/auth/')) {
+        localStorage.removeItem('squad_token');
+        localStorage.removeItem('squad_user');
+        window.location.reload();
+        return null;
+    }
 
     if (response.status === 204) {
         return null;
@@ -28,13 +36,9 @@ async function httpRequest(endpoint, options = {}) {
     if (!response.ok) {
         let errorMessage = `Error HTTP ${response.status}`;
         if (data) {
-            if (data.message) {
-                errorMessage = data.message;
-            } else if (data.errors && typeof data.errors === 'object') {
-                errorMessage = Object.values(data.errors).join(' · ');
-            } else if (data.error) {
-                errorMessage = data.error;
-            }
+            if (data.message) errorMessage = data.message;
+            else if (data.errors && typeof data.errors === 'object') errorMessage = Object.values(data.errors).join(' · ');
+            else if (data.error) errorMessage = data.error;
         }
         throw new Error(errorMessage);
     }
@@ -43,8 +47,9 @@ async function httpRequest(endpoint, options = {}) {
 }
 
 const api = {
-    // Health
-    checkHealth: () => httpRequest('/health'),
+    // Auth
+    login: (payload) => httpRequest('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+    register: (payload) => httpRequest('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
 
     // Players
     getPlayers: (position = '', status = '') => {

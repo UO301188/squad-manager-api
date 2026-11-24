@@ -3,6 +3,7 @@ package com.adriperez.squadmanager.service;
 import com.adriperez.squadmanager.dto.*;
 import com.adriperez.squadmanager.exception.BusinessRuleException;
 import com.adriperez.squadmanager.exception.ResourceNotFoundException;
+import com.adriperez.squadmanager.model.AppUser;
 import com.adriperez.squadmanager.model.Player;
 import com.adriperez.squadmanager.model.TrainingAttendance;
 import com.adriperez.squadmanager.model.TrainingSession;
@@ -10,6 +11,7 @@ import com.adriperez.squadmanager.model.enums.AttendanceStatus;
 import com.adriperez.squadmanager.repository.PlayerRepository;
 import com.adriperez.squadmanager.repository.TrainingAttendanceRepository;
 import com.adriperez.squadmanager.repository.TrainingSessionRepository;
+import com.adriperez.squadmanager.security.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,19 +24,25 @@ public class TrainingSessionService {
     private final TrainingSessionRepository trainingSessionRepository;
     private final TrainingAttendanceRepository trainingAttendanceRepository;
     private final PlayerRepository playerRepository;
+    private final CurrentUserService currentUserService;
 
     public TrainingSessionService(
             TrainingSessionRepository trainingSessionRepository,
             TrainingAttendanceRepository trainingAttendanceRepository,
-            PlayerRepository playerRepository) {
+            PlayerRepository playerRepository,
+            CurrentUserService currentUserService) {
         this.trainingSessionRepository = trainingSessionRepository;
         this.trainingAttendanceRepository = trainingAttendanceRepository;
         this.playerRepository = playerRepository;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional
     public TrainingSessionSummaryResponseDTO createSession(TrainingSessionRequestDTO dto) {
+        AppUser currentUser = currentUserService.getCurrentUser();
+
         TrainingSession session = new TrainingSession();
+        session.setUser(currentUser);
         session.setSessionDate(dto.sessionDate());
         session.setFocus(dto.focus());
         session.setDurationMinutes(dto.durationMinutes());
@@ -45,32 +53,36 @@ public class TrainingSessionService {
     }
 
     public List<TrainingSessionSummaryResponseDTO> getAllSessions() {
-        return trainingSessionRepository.findAllByOrderBySessionDateDesc()
+        Long userId = currentUserService.getCurrentUser().getId();
+        return trainingSessionRepository.findByUserIdOrderBySessionDateDesc(userId)
                 .stream()
                 .map(TrainingSessionSummaryResponseDTO::fromEntity)
                 .toList();
     }
 
     public TrainingSessionDetailResponseDTO getSessionById(Long id) {
-        TrainingSession session = trainingSessionRepository.findByIdWithAttendances(id)
+        Long userId = currentUserService.getCurrentUser().getId();
+        TrainingSession session = trainingSessionRepository.findByIdAndUserIdWithAttendances(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sesión de entrenamiento no encontrada con id: " + id));
         return TrainingSessionDetailResponseDTO.fromEntity(session);
     }
 
     @Transactional
     public void deleteSession(Long id) {
-        if (!trainingSessionRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Sesión de entrenamiento no encontrada con id: " + id);
-        }
-        trainingSessionRepository.deleteById(id);
+        Long userId = currentUserService.getCurrentUser().getId();
+        TrainingSession session = trainingSessionRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sesión de entrenamiento no encontrada con id: " + id));
+        trainingSessionRepository.delete(session);
     }
 
     @Transactional
     public TrainingAttendanceResponseDTO registerAttendance(Long sessionId, TrainingAttendanceRequestDTO dto) {
-        TrainingSession session = trainingSessionRepository.findById(sessionId)
+        Long userId = currentUserService.getCurrentUser().getId();
+
+        TrainingSession session = trainingSessionRepository.findByIdAndUserId(sessionId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sesión de entrenamiento no encontrada con id: " + sessionId));
 
-        Player player = playerRepository.findById(dto.playerId())
+        Player player = playerRepository.findByIdAndUserId(dto.playerId(), userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + dto.playerId()));
 
         if (trainingAttendanceRepository.existsByTrainingSessionIdAndPlayerId(sessionId, dto.playerId())) {
@@ -92,6 +104,12 @@ public class TrainingSessionService {
 
     @Transactional
     public TrainingAttendanceResponseDTO updateAttendance(Long sessionId, Long playerId, TrainingAttendanceRequestDTO dto) {
+        Long userId = currentUserService.getCurrentUser().getId();
+
+        if (trainingSessionRepository.findByIdAndUserId(sessionId, userId).isEmpty()) {
+            throw new ResourceNotFoundException("Sesión de entrenamiento no encontrada con id: " + sessionId);
+        }
+
         TrainingAttendance attendance = trainingAttendanceRepository.findByTrainingSessionIdAndPlayerId(sessionId, playerId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No existe registro de asistencia para el jugador " + playerId + " en la sesión " + sessionId));

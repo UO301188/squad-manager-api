@@ -31,6 +31,7 @@ public interface TrainingAttendanceRepository extends JpaRepository<TrainingAtte
             "COUNT(CASE WHEN ta.attendanceStatus = com.adriperez.squadmanager.model.enums.AttendanceStatus.PRESENT THEN 1 END), " +
             "CAST(COALESCE(AVG(ta.rpe), 0.0) AS Double)) " +
             "FROM Player p LEFT JOIN p.trainingAttendances ta " +
+            "WHERE p.user.id = :userId " +
             "GROUP BY p.id")
-    List<PlayerTrainingStatsDTO> getAllPlayersTrainingStats();
+    List<PlayerTrainingStatsDTO> getAllPlayersTrainingStatsByUserId(@Param("userId") Long userId);
 }

@@ -43,7 +43,51 @@
 <!-- Contenedor Global de Notificaciones Toast -->
 <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none"></div>
 
-<div class="min-h-screen flex flex-col lg:flex-row">
+<!-- ==================== PANTALLA LOGIN / REGISTRO ==================== -->
+<div id="auth-screen" class="hidden min-h-screen flex items-center justify-center p-4 bg-pitch-950">
+    <div class="glass-card max-w-md w-full p-8 rounded-3xl border border-slate-800 shadow-2xl">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <i data-lucide="shield-check" class="w-6 h-6 text-slate-950 stroke-[2.5]"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-xl text-white leading-none">Squad<span class="text-emerald-400">Manager</span></h1>
+                <span class="text-[11px] font-mono uppercase tracking-widest text-slate-400">Acceso Cuerpo Técnico</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-pitch-900 border border-slate-800 mb-6">
+            <button type="button" id="tab-login" onclick="toggleAuthMode('login')" class="py-2 text-xs font-bold rounded-lg bg-emerald-500/20 text-emerald-400">Iniciar Sesión</button>
+            <button type="button" id="tab-register" onclick="toggleAuthMode('register')" class="py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white">Crear Cuenta</button>
+        </div>
+
+        <form id="form-auth" class="space-y-4">
+            <input type="hidden" id="auth-mode" value="login">
+            <div id="auth-club-group" class="hidden">
+                <label class="block text-xs font-medium text-slate-400 mb-1">Nombre de tu Equipo / Club *</label>
+                <input type="text" id="auth-clubName" class="input-dark w-full px-3.5 py-2.5 rounded-xl text-sm" placeholder="Ej. Real Juvencia">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Correo Electrónico *</label>
+                <input type="email" id="auth-email" required class="input-dark w-full px-3.5 py-2.5 rounded-xl text-sm" placeholder="entrenador@club.com">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Contraseña *</label>
+                <input type="password" id="auth-password" required minlength="6" class="input-dark w-full px-3.5 py-2.5 rounded-xl text-sm" placeholder="Mínimo 6 caracteres">
+            </div>
+            <button type="submit" id="auth-submit-btn" class="btn-primary w-full justify-center py-3 text-sm">Entrar al Panel</button>
+        </form>
+
+        <div class="mt-6 pt-5 border-t border-slate-800/80 text-center">
+            <p class="text-xs text-slate-400 mb-3">¿Solo quieres explorar la plataforma con datos cargados?</p>
+            <button type="button" onclick="loginWithDemo()" class="btn-secondary w-full justify-center text-xs">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i> Acceder con Cuenta Demo
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="min-h-screen flex flex-col lg:flex-row" id="app-shell">
     <!-- Sidebar Navegación -->
     <!-- Sidebar Navegación -->
     <aside class="w-full lg:w-72 bg-pitch-900 border-b lg:border-b-0 lg:border-r border-slate-800/80 flex flex-col justify-between shrink-0">
@@ -86,15 +130,16 @@
             </nav>
         </div>
 
-        <!-- Estado API Backend -->
-        <div class="hidden lg:block p-4 m-4 rounded-xl bg-pitch-850 border border-slate-800/80">
-            <div class="flex items-center justify-between mb-1">
-                <span class="text-xs font-medium text-slate-400">Spring Boot API</span>
-                <span id="api-status-badge" class="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-400">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE
-                    </span>
+        <!-- Usuario Conectado -->
+        <div class="p-4 m-4 rounded-xl bg-pitch-850 border border-slate-800/80 space-y-3">
+            <div>
+                <span class="text-[10px] font-mono uppercase tracking-wider text-emerald-400">Club Activo</span>
+                <p id="sidebar-club-name" class="text-sm font-bold text-white truncate">-</p>
+                <p id="sidebar-user-email" class="text-[11px] text-slate-400 truncate">-</p>
             </div>
-            <p class="text-[11px] text-slate-500">Conectado a <code class="text-slate-300">/api/v1</code></p>
+            <button onclick="logout()" class="w-full py-2 px-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold flex items-center justify-center gap-2 transition-colors">
+                <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Cerrar Sesión
+            </button>
         </div>
     </aside>
 

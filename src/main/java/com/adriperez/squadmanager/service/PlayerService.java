@@ -4,10 +4,12 @@ import com.adriperez.squadmanager.dto.PlayerRequestDTO;
 import com.adriperez.squadmanager.dto.PlayerResponseDTO;
 import com.adriperez.squadmanager.exception.BusinessRuleException;
 import com.adriperez.squadmanager.exception.ResourceNotFoundException;
+import com.adriperez.squadmanager.model.AppUser;
 import com.adriperez.squadmanager.model.Player;
 import com.adriperez.squadmanager.model.enums.PlayerStatus;
 import com.adriperez.squadmanager.model.enums.Position;
 import com.adriperez.squadmanager.repository.PlayerRepository;
+import com.adriperez.squadmanager.security.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,47 +20,47 @@ import java.util.List;
 public class PlayerService {
 
     private final PlayerRepository playerRepository;
+    private final CurrentUserService currentUserService;
 
-
-    public PlayerService(PlayerRepository playerRepository) {
+    public PlayerService(PlayerRepository playerRepository, CurrentUserService currentUserService) {
         this.playerRepository = playerRepository;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional
-    public PlayerResponseDTO create(PlayerRequestDTO dto){
-        if (dto.shirtNumber() != null && playerRepository.existsByShirtNumber(dto.shirtNumber())) {
-            throw new BusinessRuleException("El dorsal ya está asignado a otro jugador");
+    public PlayerResponseDTO createPlayer(PlayerRequestDTO dto) {
+        AppUser currentUser = currentUserService.getCurrentUser();
+        Long userId = currentUser.getId();
+
+        if (dto.shirtNumber() != null && playerRepository.existsByUserIdAndShirtNumber(userId, dto.shirtNumber())) {
+            throw new BusinessRuleException("El dorsal " + dto.shirtNumber() + " ya está asignado a otro jugador de tu plantilla");
         }
+
         Player player = new Player();
+        player.setUser(currentUser);
         player.setFirstName(dto.firstName());
         player.setLastName(dto.lastName());
-        if (dto.playerStatus() == null) {
-            player.setPlayerStatus(PlayerStatus.AVAILABLE);
-
-        } else {
-            player.setPlayerStatus(dto.playerStatus());
-
-        }
-        player.setPosition(dto.position());
-        player.setBirthDate(dto.birthDate());
         player.setShirtNumber(dto.shirtNumber());
+        player.setBirthDate(dto.birthDate());
+        player.setPosition(dto.position());
+        player.setPlayerStatus(dto.playerStatus() != null ? dto.playerStatus() : PlayerStatus.AVAILABLE);
 
         Player saved = playerRepository.save(player);
-
         return PlayerResponseDTO.fromEntity(saved);
     }
 
-    public List<PlayerResponseDTO> findAll(Position position, PlayerStatus status) {
+    public List<PlayerResponseDTO> getAllPlayers(Position position, PlayerStatus status) {
+        Long userId = currentUserService.getCurrentUser().getId();
         List<Player> players;
 
         if (position != null && status != null) {
-            players = playerRepository.findByPositionAndPlayerStatus(position, status);
+            players = playerRepository.findByUserIdAndPositionAndPlayerStatus(userId, position, status);
         } else if (position != null) {
-            players = playerRepository.findByPosition(position);
+            players = playerRepository.findByUserIdAndPosition(userId, position);
         } else if (status != null) {
-            players = playerRepository.findByPlayerStatus(status);
+            players = playerRepository.findByUserIdAndPlayerStatus(userId, status);
         } else {
-            players = playerRepository.findAll();
+            players = playerRepository.findByUserId(userId);
         }
 
         return players.stream()
@@ -66,44 +68,41 @@ public class PlayerService {
                 .toList();
     }
 
-    public PlayerResponseDTO findById(Long id) {
-        Player player = playerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con ID: " + id));
+    public PlayerResponseDTO getPlayerById(Long id) {
+        Long userId = currentUserService.getCurrentUser().getId();
+        Player player = playerRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + id));
         return PlayerResponseDTO.fromEntity(player);
     }
 
     @Transactional
-    public PlayerResponseDTO update(Long id, PlayerRequestDTO dto) {
-        Player existingPlayer = playerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con ID: " + id));
+    public PlayerResponseDTO updatePlayer(Long id, PlayerRequestDTO dto) {
+        Long userId = currentUserService.getCurrentUser().getId();
+        Player player = playerRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + id));
 
-        // Validar dorsal solo si lo está cambiando por uno que ya tiene OTRO jugador
-        if (dto.shirtNumber() != null && playerRepository.existsByShirtNumberAndIdNot(dto.shirtNumber(), id)) {
-            throw new BusinessRuleException("El dorsal " + dto.shirtNumber() + " ya está asignado a otro jugador");
+        if (dto.shirtNumber() != null && playerRepository.existsByUserIdAndShirtNumberAndIdNot(userId, dto.shirtNumber(), id)) {
+            throw new BusinessRuleException("El dorsal " + dto.shirtNumber() + " ya está asignado a otro jugador de tu plantilla");
         }
 
-        mapDtoToEntity(dto, existingPlayer);
-
-        Player updated = playerRepository.save(existingPlayer);
-        return PlayerResponseDTO.fromEntity(updated);
-    }
-
-    @Transactional
-    public void delete(Long id) {
-        if (!playerRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Jugador no encontrado con ID: " + id);
-        }
-        playerRepository.deleteById(id);
-    }
-
-    // Método auxiliar privado para no repetir código entre create y update
-    private void mapDtoToEntity(PlayerRequestDTO dto, Player player) {
         player.setFirstName(dto.firstName());
         player.setLastName(dto.lastName());
         player.setShirtNumber(dto.shirtNumber());
         player.setBirthDate(dto.birthDate());
         player.setPosition(dto.position());
-        player.setPlayerStatus(dto.playerStatus() != null ? dto.playerStatus() : PlayerStatus.AVAILABLE);
+        if (dto.playerStatus() != null) {
+            player.setPlayerStatus(dto.playerStatus());
+        }
+
+        Player updated = playerRepository.save(player);
+        return PlayerResponseDTO.fromEntity(updated);
     }
 
+    @Transactional
+    public void deletePlayer(Long id) {
+        Long userId = currentUserService.getCurrentUser().getId();
+        Player player = playerRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + id));
+        playerRepository.delete(player);
+    }
 }
