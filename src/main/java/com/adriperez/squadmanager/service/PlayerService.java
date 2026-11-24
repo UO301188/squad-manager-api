@@ -28,7 +28,7 @@ public class PlayerService {
     }
 
     @Transactional
-    public PlayerResponseDTO createPlayer(PlayerRequestDTO dto) {
+    public PlayerResponseDTO create(PlayerRequestDTO dto) {
         AppUser currentUser = currentUserService.getCurrentUser();
         Long userId = currentUser.getId();
 
@@ -49,7 +49,7 @@ public class PlayerService {
         return PlayerResponseDTO.fromEntity(saved);
     }
 
-    public List<PlayerResponseDTO> getAllPlayers(Position position, PlayerStatus status) {
+    public List<PlayerResponseDTO> findAll(Position position, PlayerStatus status) {
         Long userId = currentUserService.getCurrentUser().getId();
         List<Player> players;
 
@@ -68,7 +68,7 @@ public class PlayerService {
                 .toList();
     }
 
-    public PlayerResponseDTO getPlayerById(Long id) {
+    public PlayerResponseDTO findById(Long id) {
         Long userId = currentUserService.getCurrentUser().getId();
         Player player = playerRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + id));
@@ -76,7 +76,7 @@ public class PlayerService {
     }
 
     @Transactional
-    public PlayerResponseDTO updatePlayer(Long id, PlayerRequestDTO dto) {
+    public PlayerResponseDTO update(Long id, PlayerRequestDTO dto) {
         Long userId = currentUserService.getCurrentUser().getId();
         Player player = playerRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + id));
@@ -99,7 +99,7 @@ public class PlayerService {
     }
 
     @Transactional
-    public void deletePlayer(Long id) {
+    public void delete(Long id) {
         Long userId = currentUserService.getCurrentUser().getId();
         Player player = playerRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + id));
