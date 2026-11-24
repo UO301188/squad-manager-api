@@ -1,0 +1,104 @@
+@baseUrl = http://localhost:8080/api/v1
+
+### =========================================================================
+### 0. PREPARACIÓN DE DATOS EN H2
+### =========================================================================
+
+# Jugador 1: tendrá partidos y entrenamientos
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Santi", "lastName": "Cazorla", "shirtNumber": 8, "birthDate": "1984-12-13", "position": "MIDFIELDER", "playerStatus": "AVAILABLE" }
+
+###
+
+# Jugador 2: sin partidos ni entrenamientos (para probar valores a 0 sin nulos)
+POST {{baseUrl}}/players
+Content-Type: application/json
+
+{ "firstName": "Aarón", "lastName": "Escandell", "shirtNumber": 13, "birthDate": "1995-09-27", "position": "GOALKEEPER", "playerStatus": "AVAILABLE" }
+
+###
+
+# Crear Partido 1
+POST {{baseUrl}}/matches
+Content-Type: application/json
+
+{
+  "opponent": "Real Sporting",
+  "matchDate": "2026-12-06T18:30:00",
+  "competition": "Liga",
+  "homeMatch": true
+}
+
+###
+
+# Convocar y registrar acta de Jugador 1 (45 min, 1 gol -> goalsPer90 debe dar 2.0)
+POST {{baseUrl}}/matches/1/appearances
+Content-Type: application/json
+
+{ "playerId": 1, "callUpStatus": "SUBSTITUTE" }
+
+###
+
+PUT {{baseUrl}}/matches/1/appearances/1
+Content-Type: application/json
+
+{
+  "callUpStatus": "SUBSTITUTE",
+  "minutesPlayed": 45,
+  "goals": 1,
+  "assists": 1,
+  "yellowCards": 0,
+  "redCard": false
+}
+
+###
+
+# Crear 2 sesiones de entrenamiento y registrar 1 asistencia (50%) con RPE 8
+POST {{baseUrl}}/trainings
+Content-Type: application/json
+
+{ "sessionDate": "2026-11-24T18:00:00", "focus": "Finalización", "durationMinutes": 90 }
+###
+POST {{baseUrl}}/trainings
+Content-Type: application/json
+
+{ "sessionDate": "2026-11-26T18:00:00", "focus": "Táctica defensiva", "durationMinutes": 90 }
+###
+POST {{baseUrl}}/trainings/1/attendances
+Content-Type: application/json
+
+{ "playerId": 1, "attendanceStatus": "PRESENT", "rpe": 8 }
+###
+POST {{baseUrl}}/trainings/2/attendances
+Content-Type: application/json
+
+{ "playerId": 1, "attendanceStatus": "ABSENT_JUSTIFIED", "absenceReason": "Descanso programado" }
+
+
+### =========================================================================
+### 1. CONSULTAS DE ANALÍTICA (Esperado: 200 OK y 404 Not Found)
+### =========================================================================
+
+# Estadísticas Jugador 1 (goalsPer90: 2.0, goalContributions: 2, attendancePercentage: 50.0, averageRpe: 8.0)
+GET {{baseUrl}}/players/1/stats
+Accept: application/json
+
+###
+
+# Estadísticas Jugador 2 sin actividad (todo a 0 y 0.0 sin NullPointerException)
+GET {{baseUrl}}/players/2/stats
+Accept: application/json
+
+###
+
+# Ranking completo de la plantilla ordenado por minutos jugados
+GET {{baseUrl}}/players/stats
+Accept: application/json
+
+###
+
+# Jugador inexistente (Esperado: 404 Not Found)
+GET {{baseUrl}}/players/999/stats
+Accept: application/json

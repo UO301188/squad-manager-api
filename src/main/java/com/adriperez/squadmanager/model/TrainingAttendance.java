@@ -29,7 +29,7 @@ public class TrainingAttendance {
     public TrainingAttendance() {
     }
 
-    public TrainingAttendance(AttendanceStatus attendanceStatus, String absenceReason, int rpe, Player player, TrainingSession trainingSession) {
+    public TrainingAttendance(AttendanceStatus attendanceStatus, String absenceReason, Integer rpe, Player player, TrainingSession trainingSession) {
         this.attendanceStatus = attendanceStatus;
         this.absenceReason = absenceReason;
         this.rpe = rpe;
@@ -61,11 +61,11 @@ public class TrainingAttendance {
         this.absenceReason = absenceReason;
     }
 
-    public int getRpe() {
+    public Integer getRpe() {
         return rpe;
     }
 
-    public void setRpe(int rpe) {
+    public void setRpe(Integer rpe) {
         this.rpe = rpe;
     }
 
