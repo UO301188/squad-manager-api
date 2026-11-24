@@ -7,23 +7,27 @@ import jakarta.validation.constraints.NotNull;
 
 public class MatchAppearanceStatsRequestDTO {
 
-    @NotNull
+    @NotNull(message = "El estado de convocatoria es obligatorio")
     public CallUpStatus callUpStatus;
 
-    @NotNull @Min(0) @Max(120)
+    @NotNull(message = "Los minutos jugados son obligatorios")
+    @Min(value = 0, message = "Los minutos no pueden ser negativos")
+    @Max(value = 120, message = "Los minutos no pueden superar 120")
     public Integer minutesPlayed;
 
-    @NotNull @Min(0)
+    @NotNull(message = "Los goles son obligatorios")
+    @Min(value = 0, message = "Los goles no pueden ser negativos")
     public Integer goals;
 
-    @NotNull @Min(0)
+    @NotNull(message = "Las asistencias son obligatorias")
+    @Min(value = 0, message = "Las asistencias no pueden ser negativas")
     public Integer assists;
 
-    @NotNull @Min(1) @Max(2)
+    @NotNull(message = "Las tarjetas amarillas son obligatorias")
+    @Min(value = 0, message = "Las tarjetas amarillas no pueden ser negativas")
+    @Max(value = 2, message = "Máximo 2 tarjetas amarillas por partido")
     public Integer yellowCards;
 
-    @NotNull
+    @NotNull(message = "El campo tarjeta roja es obligatorio")
     public Boolean redCard;
-
-
 }
