@@ -1,3 +1,5 @@
+
+
 /**
  * Lógica de presentación, estado y renderizado de SquadManager Pro
  */
@@ -48,9 +50,79 @@ const ATTENDANCE_META = {
 document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
     setupEventListeners();
+    document.getElementById('form-auth').addEventListener('submit', handleAuthSubmit);
     lucide.createIcons();
-    switchView('dashboard');
+    checkSession();
 });
+
+function checkSession() {
+    const token = localStorage.getItem('squad_token');
+    const userRaw = localStorage.getItem('squad_user');
+    if (!token || !userRaw) {
+        document.getElementById('auth-screen').classList.remove('hidden');
+        document.getElementById('app-shell').classList.add('hidden');
+        return;
+    }
+    const user = JSON.parse(userRaw);
+    document.getElementById('sidebar-club-name').textContent = user.clubName;
+    document.getElementById('sidebar-user-email').textContent = user.email;
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app-shell').classList.remove('hidden');
+    switchView('dashboard');
+}
+
+function toggleAuthMode(mode) {
+    document.getElementById('auth-mode').value = mode;
+    const isReg = mode === 'register';
+    document.getElementById('auth-club-group').classList.toggle('hidden', !isReg);
+    document.getElementById('auth-clubName').required = isReg;
+    document.getElementById('auth-submit-btn').textContent = isReg ? 'Crear Cuenta y Entrar' : 'Entrar al Panel';
+
+    document.getElementById('tab-login').className = !isReg
+        ? 'py-2 text-xs font-bold rounded-lg bg-emerald-500/20 text-emerald-400'
+        : 'py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white';
+    document.getElementById('tab-register').className = isReg
+        ? 'py-2 text-xs font-bold rounded-lg bg-emerald-500/20 text-emerald-400'
+        : 'py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white';
+}
+
+async function handleAuthSubmit(e) {
+    e.preventDefault();
+    const mode = document.getElementById('auth-mode').value;
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+
+    try {
+        const res = mode === 'register'
+            ? await api.register({ clubName: document.getElementById('auth-clubName').value.trim(), email, password })
+            : await api.login({ email, password });
+
+        localStorage.setItem('squad_token', res.token);
+        localStorage.setItem('squad_user', JSON.stringify({ email: res.email, clubName: res.clubName }));
+        showToast(`Bienvenido, ${res.clubName}`, 'success');
+        checkSession();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function loginWithDemo() {
+    try {
+        const res = await api.login({ email: 'demo@squadmanager.com', password: 'demo1234' });
+        localStorage.setItem('squad_token', res.token);
+        localStorage.setItem('squad_user', JSON.stringify({ email: res.email, clubName: res.clubName }));
+        showToast('Sesión iniciada en modo Demo', 'success');
+        checkSession();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function logout() {
+    localStorage.removeItem('squad_token');
+    localStorage.removeItem('squad_user');
+    checkSession();
+}
 
 function setupNavigation() {
     document.querySelectorAll('.nav-btn').forEach(btn => {

@@ -106,6 +106,13 @@ public class Match {
         return matchAppearances;
     }
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private AppUser user;
+
+    public AppUser getUser() { return user; }
+    public void setUser(AppUser user) { this.user = user; }
+
     public void setMatchAppearances(List<MatchAppearance> matchAppearances) {
         this.matchAppearances = matchAppearances;
     }

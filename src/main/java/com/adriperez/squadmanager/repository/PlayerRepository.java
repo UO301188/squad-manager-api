@@ -6,11 +6,14 @@ import com.adriperez.squadmanager.model.enums.Position;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PlayerRepository extends JpaRepository<Player, Long> {
-    boolean existsByShirtNumber(Integer shirtNumber);
-    boolean existsByShirtNumberAndIdNot(Integer shirtNumber, Long id);
-    List<Player> findByPosition(Position position);
-    List<Player> findByPlayerStatus(PlayerStatus playerStatus);
-    List<Player> findByPositionAndPlayerStatus(Position position, PlayerStatus playerStatus);
+    boolean existsByUserIdAndShirtNumber(Long userId, Integer shirtNumber);
+    boolean existsByUserIdAndShirtNumberAndIdNot(Long userId, Integer shirtNumber, Long id);
+    Optional<Player> findByIdAndUserId(Long id, Long userId);
+    List<Player> findByUserId(Long userId);
+    List<Player> findByUserIdAndPosition(Long userId, Position position);
+    List<Player> findByUserIdAndPlayerStatus(Long userId, PlayerStatus playerStatus);
+    List<Player> findByUserIdAndPositionAndPlayerStatus(Long userId, Position position, PlayerStatus playerStatus);
 }

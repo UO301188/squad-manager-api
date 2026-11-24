@@ -8,6 +8,7 @@ import com.adriperez.squadmanager.model.Player;
 import com.adriperez.squadmanager.repository.MatchAppearanceRepository;
 import com.adriperez.squadmanager.repository.PlayerRepository;
 import com.adriperez.squadmanager.repository.TrainingAttendanceRepository;
+import com.adriperez.squadmanager.security.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,18 +25,23 @@ public class AnalyticsService {
     private final PlayerRepository playerRepository;
     private final MatchAppearanceRepository matchAppearanceRepository;
     private final TrainingAttendanceRepository trainingAttendanceRepository;
+    private final CurrentUserService currentUserService;
 
     public AnalyticsService(
             PlayerRepository playerRepository,
             MatchAppearanceRepository matchAppearanceRepository,
-            TrainingAttendanceRepository trainingAttendanceRepository) {
+            TrainingAttendanceRepository trainingAttendanceRepository,
+            CurrentUserService currentUserService) {
         this.playerRepository = playerRepository;
         this.matchAppearanceRepository = matchAppearanceRepository;
         this.trainingAttendanceRepository = trainingAttendanceRepository;
+        this.currentUserService = currentUserService;
     }
 
     public PlayerStatsResponseDTO getPlayerStats(Long playerId) {
-        Player player = playerRepository.findById(playerId)
+        Long userId = currentUserService.getCurrentUser().getId();
+
+        Player player = playerRepository.findByIdAndUserId(playerId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + playerId));
 
         PlayerMatchStatsDTO matchStats = matchAppearanceRepository.getMatchStatsByPlayerId(playerId)
@@ -48,13 +54,15 @@ public class AnalyticsService {
     }
 
     public List<PlayerStatsResponseDTO> getAllPlayersStats() {
-        List<Player> players = playerRepository.findAll();
+        Long userId = currentUserService.getCurrentUser().getId();
 
-        Map<Long, PlayerMatchStatsDTO> matchStatsByPlayer = matchAppearanceRepository.getAllPlayersMatchStats()
+        List<Player> players = playerRepository.findByUserId(userId);
+
+        Map<Long, PlayerMatchStatsDTO> matchStatsByPlayer = matchAppearanceRepository.getAllPlayersMatchStatsByUserId(userId)
                 .stream()
                 .collect(Collectors.toMap(PlayerMatchStatsDTO::playerId, Function.identity()));
 
-        Map<Long, PlayerTrainingStatsDTO> trainingStatsByPlayer = trainingAttendanceRepository.getAllPlayersTrainingStats()
+        Map<Long, PlayerTrainingStatsDTO> trainingStatsByPlayer = trainingAttendanceRepository.getAllPlayersTrainingStatsByUserId(userId)
                 .stream()
                 .collect(Collectors.toMap(PlayerTrainingStatsDTO::playerId, Function.identity()));
 

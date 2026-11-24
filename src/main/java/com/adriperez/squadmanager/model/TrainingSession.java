@@ -26,6 +26,13 @@ public class TrainingSession {
     @OneToMany(mappedBy = "trainingSession", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TrainingAttendance> trainingAttendances = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private AppUser user;
+
+    public AppUser getUser() { return user; }
+    public void setUser(AppUser user) { this.user = user; }
+
     public TrainingSession() {
     }
 
