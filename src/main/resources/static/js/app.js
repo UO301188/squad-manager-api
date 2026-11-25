@@ -933,9 +933,10 @@ async function saveTacticalLineup() {
 }
 
 async function exportCallUpPdf() {
+    const includeRoles = document.getElementById('export-include-roles')?.checked ?? false;
     try {
-        await api.downloadMatchCallUpPdf(state.currentMatchId);
-        showToast('PDF de convocatoria descargado', 'success');
+        await api.downloadMatchCallUpPdf(state.currentMatchId, includeRoles);
+        showToast(includeRoles ? 'PDF de convocatoria con roles descargado' : 'PDF de convocatoria previa descargado', 'success');
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -951,6 +952,7 @@ async function copyCallUpToWhatsApp() {
         return;
     }
 
+    const includeRoles = document.getElementById('export-include-roles')?.checked ?? false;
     const user = JSON.parse(localStorage.getItem('squad_user') || '{}');
     const clubName = user.clubName || 'Convocatoria Oficial';
     const condition = match.homeMatch ? 'Local' : 'Visitante';
@@ -977,7 +979,10 @@ async function copyCallUpToWhatsApp() {
         if (list.length) {
             lines.push(`*${g.title}*`);
             list.forEach(p => {
-                lines.push(`• #${p.shirtNumber} ${p.playerFullName}`);
+                const roleSuffix = includeRoles
+                    ? ` _(${p.callUpStatus === 'STARTER' ? 'Titular' : 'Suplente'})_`
+                    : '';
+                lines.push(`• #${p.shirtNumber} ${p.playerFullName}${roleSuffix}`);
             });
             lines.push(``);
         }
@@ -988,7 +993,7 @@ async function copyCallUpToWhatsApp() {
 
     try {
         await navigator.clipboard.writeText(text);
-        showToast('Convocatoria copiada al portapapeles lista para WhatsApp', 'success');
+        showToast(includeRoles ? 'Convocatoria con roles copiada para WhatsApp' : 'Convocatoria previa copiada para WhatsApp', 'success');
     } catch (_) {
         const area = document.createElement('textarea');
         area.value = text;

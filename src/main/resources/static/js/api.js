@@ -77,9 +77,9 @@ const api = {
     updateMatchAppearance: (matchId, playerId, payload) => httpRequest(`/matches/${matchId}/appearances/${playerId}`, { method: 'PUT', body: JSON.stringify(payload) }),
     removePlayerFromMatch: (matchId, playerId) => httpRequest(`/matches/${matchId}/appearances/${playerId}`, { method: 'DELETE' }),
     updateMatchLineup: (matchId, payload) => httpRequest(`/matches/${matchId}/lineup`, { method: 'PUT', body: JSON.stringify(payload) }),
-    downloadMatchCallUpPdf: async (matchId) => {
+    downloadMatchCallUpPdf: async (matchId, includeRoles = false) => {
         const token = localStorage.getItem('squad_token');
-        const response = await fetch(`${API_BASE}/matches/${matchId}/callup-pdf`, {
+        const response = await fetch(`${API_BASE}/matches/${matchId}/callup-pdf?includeRoles=${includeRoles}`, {
             headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
 
@@ -96,7 +96,7 @@ const api = {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `convocatoria-partido-${matchId}.pdf`;
+        link.download = `${includeRoles ? 'convocatoria-alineacion' : 'convocatoria-previa'}-${matchId}.pdf`;
         document.body.appendChild(link);
         link.click();
         link.remove();

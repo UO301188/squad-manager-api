@@ -38,7 +38,7 @@ public class CallUpPdfService {
         this.currentUserService = currentUserService;
     }
 
-    public byte[] generateCallUpPdf(Long matchId) {
+    public byte[] generateCallUpPdf(Long matchId, boolean includeRoles) {
         AppUser currentUser = currentUserService.getCurrentUser();
 
         Match match = matchRepository.findByIdAndUserIdWithAppearances(matchId, currentUser.getId())
@@ -110,13 +110,16 @@ public class CallUpPdfService {
             infoTable.addCell(buildInfoBox("TOTAL CONVOCADOS", calledUpPlayers.size() + " Jugadores", labelFont, valueFont, lightGray, borderGray));
             document.add(infoTable);
 
-            // 3. Tabla de Jugadores Convocados
-            PdfPTable squadTable = new PdfPTable(4);
+            // 3. Tabla de Jugadores Convocados (3 o 4 columnas según includeRoles)
+            PdfPTable squadTable = includeRoles ? new PdfPTable(4) : new PdfPTable(3);
             squadTable.setWidthPercentage(100);
-            squadTable.setWidths(new float[]{12f, 44f, 24f, 20f});
+            squadTable.setWidths(includeRoles ? new float[]{12f, 44f, 24f, 20f} : new float[]{15f, 53f, 32f});
 
             Font thFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE);
-            String[] headers = {"DORSAL", "JUGADOR", "DEMARCACIÓN", "ROL"};
+            String[] headers = includeRoles
+                    ? new String[]{"DORSAL", "JUGADOR", "DEMARCACIÓN", "ROL"}
+                    : new String[]{"DORSAL", "JUGADOR", "DEMARCACIÓN"};
+
             for (int i = 0; i < headers.length; i++) {
                 PdfPCell th = new PdfPCell(new Phrase(headers[i], thFont));
                 th.setBackgroundColor(darkBg);
@@ -150,11 +153,13 @@ public class CallUpPdfService {
                 styleDataCell(cPos, rowBg, borderGray);
                 squadTable.addCell(cPos);
 
-                String roleLabel = app.getCallUpStatus() == CallUpStatus.STARTER ? "TITULAR" : "SUPLENTE";
-                PdfPCell cRole = new PdfPCell(new Phrase(roleLabel, roleFont));
-                cRole.setHorizontalAlignment(Element.ALIGN_CENTER);
-                styleDataCell(cRole, rowBg, borderGray);
-                squadTable.addCell(cRole);
+                if (includeRoles) {
+                    String roleLabel = app.getCallUpStatus() == CallUpStatus.STARTER ? "TITULAR" : "SUPLENTE";
+                    PdfPCell cRole = new PdfPCell(new Phrase(roleLabel, roleFont));
+                    cRole.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    styleDataCell(cRole, rowBg, borderGray);
+                    squadTable.addCell(cRole);
+                }
             }
 
             document.add(squadTable);
