@@ -149,6 +149,8 @@ public class MatchService {
         return MatchDetailResponseDTO.fromEntity(saved);
     }
 
+
+
     @Transactional
     public MatchAppearanceResponseDTO addPlayerToMatch(Long matchId, CallUpRequestDTO dto) {
         Long userId = currentUserService.getCurrentUser().getId();
@@ -164,8 +166,15 @@ public class MatchService {
         }
 
         if (dto.callUpStatus != CallUpStatus.NOT_CALLED) {
+            if (player.getPlayerStatus() == PlayerStatus.INJURED) {
+                String detail = player.getInjuryDescription() != null ? " (" + player.getInjuryDescription() + ")" : "";
+                throw new BusinessRuleException("No se puede convocar a un jugador lesionado" + detail);
+            }
+            if (player.getPlayerStatus() == PlayerStatus.SUSPENDED) {
+                throw new BusinessRuleException("No se puede convocar a un jugador sancionado por acumulación o tarjeta roja");
+            }
             if (player.getPlayerStatus() != PlayerStatus.AVAILABLE) {
-                throw new BusinessRuleException("No se puede convocar a un jugador lesionado o sancionado");
+                throw new BusinessRuleException("El jugador no se encuentra disponible para competir");
             }
 
             if (dto.callUpStatus == CallUpStatus.STARTER) {
@@ -217,6 +226,9 @@ public class MatchService {
             }
         }
 
+        int previousYellowsInMatch = appearance.getYellowCards() != null ? appearance.getYellowCards() : 0;
+        long totalYellowsBefore = matchAppearanceRepository.getTotalYellowCardsByPlayerId(playerId);
+
         appearance.setCallUpStatus(dto.callUpStatus);
         if (dto.callUpStatus != CallUpStatus.STARTER) {
             appearance.setLineupSlot(null);
@@ -228,6 +240,18 @@ public class MatchService {
         appearance.setRedCard(dto.redCard);
 
         MatchAppearance updatedAppearance = matchAppearanceRepository.save(appearance);
+
+        // Regla disciplinaria automática: Roja directa o cruce de ciclo de 5 amarillas
+        long totalYellowsAfter = totalYellowsBefore - previousYellowsInMatch + dto.yellowCards;
+        boolean crossedFiveYellowCycle = (totalYellowsAfter > totalYellowsBefore)
+                && ((totalYellowsAfter / 5) > (totalYellowsBefore / 5));
+
+        if (Boolean.TRUE.equals(dto.redCard) || crossedFiveYellowCycle) {
+            Player player = appearance.getPlayer();
+            player.setPlayerStatus(PlayerStatus.SUSPENDED);
+            playerRepository.save(player);
+        }
+
         return MatchAppearanceResponseDTO.fromEntity(updatedAppearance);
     }
 

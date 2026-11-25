@@ -8,22 +8,31 @@ import com.adriperez.squadmanager.model.AppUser;
 import com.adriperez.squadmanager.model.Player;
 import com.adriperez.squadmanager.model.enums.PlayerStatus;
 import com.adriperez.squadmanager.model.enums.Position;
+import com.adriperez.squadmanager.repository.MatchAppearanceRepository;
 import com.adriperez.squadmanager.repository.PlayerRepository;
 import com.adriperez.squadmanager.security.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional(readOnly = true)
 public class PlayerService {
 
     private final PlayerRepository playerRepository;
+    private final MatchAppearanceRepository matchAppearanceRepository;
     private final CurrentUserService currentUserService;
 
-    public PlayerService(PlayerRepository playerRepository, CurrentUserService currentUserService) {
+    public PlayerService(
+            PlayerRepository playerRepository,
+            MatchAppearanceRepository matchAppearanceRepository,
+            CurrentUserService currentUserService) {
         this.playerRepository = playerRepository;
+        this.matchAppearanceRepository = matchAppearanceRepository;
         this.currentUserService = currentUserService;
     }
 
@@ -38,15 +47,10 @@ public class PlayerService {
 
         Player player = new Player();
         player.setUser(currentUser);
-        player.setFirstName(dto.firstName());
-        player.setLastName(dto.lastName());
-        player.setShirtNumber(dto.shirtNumber());
-        player.setBirthDate(dto.birthDate());
-        player.setPosition(dto.position());
-        player.setPlayerStatus(dto.playerStatus() != null ? dto.playerStatus() : PlayerStatus.AVAILABLE);
+        applyDtoToPlayer(player, dto);
 
         Player saved = playerRepository.save(player);
-        return PlayerResponseDTO.fromEntity(saved);
+        return PlayerResponseDTO.fromEntity(saved, 0L);
     }
 
     public List<PlayerResponseDTO> findAll(Position position, PlayerStatus status) {
@@ -63,8 +67,10 @@ public class PlayerService {
             players = playerRepository.findByUserId(userId);
         }
 
+        Map<Long, Long> yellowsMap = getYellowCardsMap(userId);
+
         return players.stream()
-                .map(PlayerResponseDTO::fromEntity)
+                .map(p -> PlayerResponseDTO.fromEntity(p, yellowsMap.getOrDefault(p.getId(), 0L)))
                 .toList();
     }
 
@@ -72,7 +78,8 @@ public class PlayerService {
         Long userId = currentUserService.getCurrentUser().getId();
         Player player = playerRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + id));
-        return PlayerResponseDTO.fromEntity(player);
+        long yellows = matchAppearanceRepository.getTotalYellowCardsByPlayerId(id);
+        return PlayerResponseDTO.fromEntity(player, yellows);
     }
 
     @Transactional
@@ -85,17 +92,11 @@ public class PlayerService {
             throw new BusinessRuleException("El dorsal " + dto.shirtNumber() + " ya está asignado a otro jugador de tu plantilla");
         }
 
-        player.setFirstName(dto.firstName());
-        player.setLastName(dto.lastName());
-        player.setShirtNumber(dto.shirtNumber());
-        player.setBirthDate(dto.birthDate());
-        player.setPosition(dto.position());
-        if (dto.playerStatus() != null) {
-            player.setPlayerStatus(dto.playerStatus());
-        }
+        applyDtoToPlayer(player, dto);
 
         Player updated = playerRepository.save(player);
-        return PlayerResponseDTO.fromEntity(updated);
+        long yellows = matchAppearanceRepository.getTotalYellowCardsByPlayerId(id);
+        return PlayerResponseDTO.fromEntity(updated, yellows);
     }
 
     @Transactional
@@ -104,5 +105,38 @@ public class PlayerService {
         Player player = playerRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + id));
         playerRepository.delete(player);
+    }
+
+    private void applyDtoToPlayer(Player player, PlayerRequestDTO dto) {
+        player.setFirstName(dto.firstName());
+        player.setLastName(dto.lastName());
+        player.setShirtNumber(dto.shirtNumber());
+        player.setBirthDate(dto.birthDate());
+        player.setPosition(dto.position());
+
+        PlayerStatus targetStatus = dto.playerStatus() != null ? dto.playerStatus() : PlayerStatus.AVAILABLE;
+        player.setPlayerStatus(targetStatus);
+
+        if (targetStatus == PlayerStatus.INJURED) {
+            player.setInjuryDescription(dto.injuryDescription() != null && !dto.injuryDescription().isBlank()
+                    ? dto.injuryDescription().trim()
+                    : "Lesión muscular / en evaluación");
+            player.setInjuryStartDate(dto.injuryStartDate() != null ? dto.injuryStartDate() : LocalDate.now());
+            player.setExpectedReturnDate(dto.expectedReturnDate());
+        } else {
+            player.setInjuryDescription(null);
+            player.setInjuryStartDate(null);
+            player.setExpectedReturnDate(null);
+        }
+    }
+
+    private Map<Long, Long> getYellowCardsMap(Long userId) {
+        Map<Long, Long> map = new HashMap<>();
+        for (Object[] row : matchAppearanceRepository.getYellowCardsCountByUserId(userId)) {
+            Long playerId = ((Number) row[0]).longValue();
+            Long count = ((Number) row[1]).longValue();
+            map.put(playerId, count);
+        }
+        return map;
     }
 }

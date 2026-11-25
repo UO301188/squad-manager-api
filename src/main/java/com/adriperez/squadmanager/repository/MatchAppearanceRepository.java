@@ -55,4 +55,10 @@ public interface MatchAppearanceRepository extends JpaRepository<MatchAppearance
             "WHERE p.user.id = :userId " +
             "GROUP BY p.id")
     List<PlayerMatchStatsDTO> getAllPlayersMatchStatsByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT COALESCE(SUM(ma.yellowCards), 0) FROM MatchAppearance ma WHERE ma.player.id = :playerId")
+    long getTotalYellowCardsByPlayerId(@Param("playerId") Long playerId);
+
+    @Query("SELECT ma.player.id, COALESCE(SUM(ma.yellowCards), 0) FROM MatchAppearance ma WHERE ma.player.user.id = :userId GROUP BY ma.player.id")
+    List<Object[]> getYellowCardsCountByUserId(@Param("userId") Long userId);
 }

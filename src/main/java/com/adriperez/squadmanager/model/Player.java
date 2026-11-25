@@ -42,6 +42,34 @@ public class Player {
     public AppUser getUser() { return user; }
     public void setUser(AppUser user) { this.user = user; }
 
+    private String injuryDescription;
+    private LocalDate injuryStartDate;
+    private LocalDate expectedReturnDate;
+
+    public String getInjuryDescription() {
+        return injuryDescription;
+    }
+
+    public void setInjuryDescription(String injuryDescription) {
+        this.injuryDescription = injuryDescription;
+    }
+
+    public LocalDate getInjuryStartDate() {
+        return injuryStartDate;
+    }
+
+    public void setInjuryStartDate(LocalDate injuryStartDate) {
+        this.injuryStartDate = injuryStartDate;
+    }
+
+    public LocalDate getExpectedReturnDate() {
+        return expectedReturnDate;
+    }
+
+    public void setExpectedReturnDate(LocalDate expectedReturnDate) {
+        this.expectedReturnDate = expectedReturnDate;
+    }
+
     public Player() {
     }
 

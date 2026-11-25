@@ -390,6 +390,63 @@ function renderDashboardLists(matches, stats) {
             </div>
         </div>
     `).join('');
+
+    const medicalContainer = document.getElementById('dashboard-medical-list');
+    if (medicalContainer) {
+        const medicalAlerts = state.players.filter(p =>
+            p.playerStatus === 'INJURED' || p.playerStatus === 'SUSPENDED' || p.warnedByCards
+        );
+
+        if (!medicalAlerts.length) {
+            medicalContainer.innerHTML = `<p class="col-span-full text-xs text-slate-400">Toda la plantilla está disponible y sin jugadores apercibidos.</p>`;
+        } else {
+            medicalContainer.innerHTML = medicalAlerts.map(p => {
+                if (p.playerStatus === 'INJURED') {
+                    const rec = getRecoveryProgress(p.injuryStartDate, p.expectedReturnDate);
+                    return `
+                        <div class="p-3.5 rounded-xl bg-rose-950/20 border border-rose-500/25 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-white">#${p.shirtNumber} ${p.firstName} ${p.lastName}</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400">LESIONADO</span>
+                            </div>
+                            <p class="text-[11px] text-slate-300">${p.injuryDescription || 'Baja médica'}</p>
+                            ${rec ? `
+                                <div>
+                                    <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                                        <span>Recuperación: ${rec.percent}%</span>
+                                        <span class="text-rose-300 font-semibold">${rec.label}</span>
+                                    </div>
+                                    <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                        <div class="h-full bg-gradient-to-r from-rose-500 to-emerald-400 rounded-full" style="width: ${rec.percent}%"></div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                if (p.playerStatus === 'SUSPENDED') {
+                    return `
+                        <div class="p-3.5 rounded-xl bg-amber-950/25 border border-amber-500/30 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs font-bold text-white block">#${p.shirtNumber} ${p.firstName} ${p.lastName}</span>
+                                <span class="text-[11px] text-amber-300">Sanción disciplinaria activa</span>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">SANCIONADO</span>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="p-3.5 rounded-xl bg-pitch-900/90 border border-amber-500/25 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-white block">#${p.shirtNumber} ${p.firstName} ${p.lastName}</span>
+                            <span class="text-[11px] text-slate-400">Acumula ${p.totalYellowCards} amarillas</span>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">APERCIBIDO</span>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
 }
 
 // ==================== PLANTILLA (PLAYERS) ====================
@@ -400,6 +457,13 @@ async function loadPlayers() {
     } catch (err) {
         showToast(err.message, 'error');
     }
+}
+
+
+
+function toggleInjuryFields() {
+    const isInjured = document.getElementById('player-status').value === 'INJURED';
+    document.getElementById('player-injury-fields').classList.toggle('hidden', !isInjured);
 }
 
 function renderPlayers() {
@@ -422,6 +486,29 @@ function renderPlayers() {
         const pos = POSITION_META[p.position] || { label: p.position, badge: 'bg-slate-800 text-slate-300' };
         const st = STATUS_META[p.playerStatus] || { label: p.playerStatus, badge: 'bg-slate-800 text-slate-300' };
         const age = calculateAge(p.birthDate);
+        const cycleCount = p.totalYellowCards % 5;
+
+        let injuryBlock = '';
+        if (p.playerStatus === 'INJURED') {
+            const rec = getRecoveryProgress(p.injuryStartDate, p.expectedReturnDate);
+            injuryBlock = `
+                <div class="mt-3 p-3 rounded-xl bg-rose-950/25 border border-rose-500/25 space-y-2">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="font-semibold text-rose-300 truncate">${p.injuryDescription || 'Baja médica'}</span>
+                        ${rec ? `<span class="font-mono text-[10px] text-rose-400 shrink-0 ml-2">${rec.label}</span>` : ''}
+                    </div>
+                    ${rec ? `
+                        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-rose-500 to-emerald-400 rounded-full" style="width: ${rec.percent}%"></div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        const cardBadge = p.warnedByCards
+            ? `<span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/40">4/5 AMARILLAS · APERCIBIDO</span>`
+            : `<span class="text-[10px] font-mono text-slate-400">Ciclo: ${cycleCount}/5 A</span>`;
 
         return `
             <div class="glass-card p-5 rounded-2xl flex flex-col justify-between hover:border-slate-700 transition-all">
@@ -439,10 +526,15 @@ function renderPlayers() {
                         <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full border ${st.badge}">${st.label}</span>
                     </div>
 
-                    <div class="mt-4 pt-3 border-t border-slate-800/70 flex items-center justify-between">
-                        <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-md border ${pos.badge}">${pos.label}</span>
-                        <button onclick="openPlayerStatsModal(${p.id})" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1">
-                            <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i> Ver rendimiento
+                    ${injuryBlock}
+
+                    <div class="mt-4 pt-3 border-t border-slate-800/70 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-md border ${pos.badge}">${pos.label}</span>
+                            ${cardBadge}
+                        </div>
+                        <button onclick="openPlayerStatsModal(${p.id})" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1 shrink-0">
+                            <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i> Stats
                         </button>
                     </div>
                 </div>
@@ -473,23 +565,32 @@ function openPlayerModal(player = null) {
         document.getElementById('player-birthDate').value = player.birthDate;
         document.getElementById('player-position').value = player.position;
         document.getElementById('player-status').value = player.playerStatus;
+        document.getElementById('player-injuryDescription').value = player.injuryDescription || '';
+        document.getElementById('player-injuryStartDate').value = player.injuryStartDate || '';
+        document.getElementById('player-expectedReturnDate').value = player.expectedReturnDate || '';
     } else {
         document.getElementById('modal-player-title').textContent = 'Alta de Nuevo Jugador';
         document.getElementById('player-id').value = '';
     }
+    toggleInjuryFields();
     openModal('modal-player');
 }
 
 async function handlePlayerSubmit(e) {
     e.preventDefault();
     const id = document.getElementById('player-id').value;
+    const status = document.getElementById('player-status').value;
+
     const payload = {
         firstName: document.getElementById('player-firstName').value.trim(),
         lastName: document.getElementById('player-lastName').value.trim(),
         shirtNumber: parseInt(document.getElementById('player-shirtNumber').value, 10),
         birthDate: document.getElementById('player-birthDate').value,
         position: document.getElementById('player-position').value,
-        playerStatus: document.getElementById('player-status').value
+        playerStatus: status,
+        injuryDescription: status === 'INJURED' ? (document.getElementById('player-injuryDescription').value.trim() || null) : null,
+        injuryStartDate: status === 'INJURED' ? (document.getElementById('player-injuryStartDate').value || null) : null,
+        expectedReturnDate: status === 'INJURED' ? (document.getElementById('player-expectedReturnDate').value || null) : null
     };
 
     try {
@@ -620,7 +721,12 @@ async function openMatchDetail(matchId) {
         // Poblar selector de jugadores para convocar
         const select = document.getElementById('callup-player-select');
         select.innerHTML = players.map(p => {
-            const statusTag = p.playerStatus !== 'AVAILABLE' ? ` [${STATUS_META[p.playerStatus]?.label.toUpperCase()}]` : '';
+            let statusTag = '';
+            if (p.playerStatus !== 'AVAILABLE') {
+                statusTag = ` [${STATUS_META[p.playerStatus]?.label.toUpperCase()}]`;
+            } else if (p.warnedByCards) {
+                statusTag = ` [APERCIBIDO ${p.totalYellowCards}A]`;
+            }
             return `<option value="${p.id}">#${p.shirtNumber} ${p.firstName} ${p.lastName} (${POSITION_META[p.position]?.short})${statusTag}</option>`;
         }).join('');
 
@@ -1446,4 +1552,28 @@ function calculateAge(birthDateStr) {
     const m = today.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
     return age;
+}
+
+function getRecoveryProgress(startStr, endStr) {
+    if (!startStr || !endStr) return null;
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    const today = new Date();
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    const totalMs = end - start;
+    const elapsedMs = today - start;
+    const remainingDays = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+
+    if (totalMs <= 0) return { percent: 100, label: 'Alta prevista hoy' };
+    const percent = Math.max(5, Math.min(100, Math.round((elapsedMs / totalMs) * 100)));
+
+    let label = `Faltan ${remainingDays} días`;
+    if (remainingDays === 1) label = 'Alta mañana';
+    if (remainingDays === 0) label = 'Alta prevista hoy';
+    if (remainingDays < 0) label = `Alta vencida (${Math.abs(remainingDays)}d)`;
+
+    return { percent, label };
 }

@@ -10,22 +10,24 @@ public record PlayerRequestDTO(
         @NotBlank(message = "El nombre es obligatorio")
         String firstName,
 
-        @NotBlank(message = "El apellido es obligatorio")
+        @NotBlank(message = "Los apellidos son obligatorios")
         String lastName,
 
-        @NotNull(message = "El número de camiseta es obligatorio")
-        @Min(value = 1, message = "El número de camiseta debe ser al menos 1")
-        @Max(value = 99, message = "El número de camiseta no puede ser mayor a 99")
+        @NotNull(message = "El dorsal es obligatorio")
+        @Min(value = 1, message = "El dorsal mínimo es 1")
+        @Max(value = 99, message = "El dorsal máximo es 99")
         Integer shirtNumber,
 
         @NotNull(message = "La fecha de nacimiento es obligatoria")
-        @Past(message = "La fecha de nacimiento debe ser en el pasado")
+        @Past(message = "La fecha de nacimiento debe ser anterior a hoy")
         LocalDate birthDate,
 
-        @NotNull(message = "La posición es obligatoria")
+        @NotNull(message = "La demarcación es obligatoria")
         Position position,
 
-        PlayerStatus playerStatus
-) {
+        PlayerStatus playerStatus,
 
-}
+        String injuryDescription,
+        LocalDate injuryStartDate,
+        LocalDate expectedReturnDate
+) {}
