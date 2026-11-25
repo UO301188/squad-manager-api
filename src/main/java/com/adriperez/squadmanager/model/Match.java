@@ -29,6 +29,17 @@ public class Match {
     @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MatchAppearance> matchAppearances = new ArrayList<>();
 
+    @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MatchEvent> events = new ArrayList<>();
+
+    public List<MatchEvent> getEvents() {
+        return events;
+    }
+
+    public void setEvents(List<MatchEvent> events) {
+        this.events = events;
+    }
+
     public Match() {
     }
 

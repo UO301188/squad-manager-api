@@ -1,9 +1,7 @@
 package com.adriperez.squadmanager.dto;
 
 import com.adriperez.squadmanager.model.enums.CallUpStatus;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 
 public class MatchAppearanceStatsRequestDTO {
 
@@ -30,4 +28,8 @@ public class MatchAppearanceStatsRequestDTO {
 
     @NotNull(message = "El campo tarjeta roja es obligatorio")
     public Boolean redCard;
+
+    @DecimalMin(value = "1.0", message = "La nota mínima es 1.0")
+    @DecimalMax(value = "10.0", message = "La nota máxima es 10.0")
+    public Double rating;
 }

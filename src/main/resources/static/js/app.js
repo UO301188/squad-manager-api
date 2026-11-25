@@ -228,6 +228,8 @@ function setupEventListeners() {
 
     document.getElementById('compare-player-a').addEventListener('change', renderPlayerComparison);
     document.getElementById('compare-player-b').addEventListener('change', renderPlayerComparison);
+
+    document.getElementById('form-match-event').addEventListener('submit', handleMatchEventSubmit);
 }
 
 // ==================== DASHBOARD ====================
@@ -730,17 +732,29 @@ async function openMatchDetail(matchId) {
             return `<option value="${p.id}">#${p.shirtNumber} ${p.firstName} ${p.lastName} (${POSITION_META[p.position]?.short})${statusTag}</option>`;
         }).join('');
 
-        const appearances = match.appearances || match.matchAppearances || [];
+        const appearances = match.appearances || [];
         const startersCount = appearances.filter(a => a.callUpStatus === 'STARTER').length;
         document.getElementById('md-starters-count').textContent = `${startersCount} / 11 Titulares`;
 
+        // Poblar selector de jugadores para cronología (solo convocados)
+        const eventSelect = document.getElementById('event-player-select');
+        eventSelect.innerHTML = appearances.map(a =>
+            `<option value="${a.playerId}">#${a.shirtNumber} ${a.playerFullName}</option>`
+        ).join('');
+
+        // Calcular MVP (mayor nota > 0)
+        const ratedList = appearances.filter(a => a.rating !== null && a.rating !== undefined);
+        const maxRating = ratedList.length ? Math.max(...ratedList.map(a => a.rating)) : null;
+
         const tbody = document.getElementById('md-appearances-body');
         if (!appearances.length) {
-            tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-slate-500">Aún no hay jugadores convocados para este encuentro.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-slate-500">Aún no hay jugadores convocados para este encuentro.</td></tr>`;
         } else {
             tbody.innerHTML = appearances.map(a => {
                 const cMeta = CALLUP_META[a.callUpStatus] || { label: a.callUpStatus, badge: 'bg-slate-800 text-slate-300' };
                 const name = a.playerFullName || a.fullName || 'Jugador';
+                const isMvp = maxRating !== null && a.rating === maxRating;
+
                 return `
                     <tr class="hover:bg-slate-800/30">
                         <td class="py-2.5 px-3 font-mono font-bold text-emerald-400">${a.shirtNumber}</td>
@@ -753,6 +767,7 @@ async function openMatchDetail(matchId) {
                             ${a.yellowCards > 0 ? `<span class="text-amber-400 font-bold">${a.yellowCards}A</span>` : '-'}
                             ${a.redCard ? `<span class="ml-1 text-rose-500 font-bold">1R</span>` : ''}
                         </td>
+                        <td class="py-2.5 px-3 text-center">${formatRatingBadge(a.rating, isMvp)}</td>
                         <td class="py-2.5 px-3 text-right space-x-1">
                             <button onclick='openAppearanceEditor(${JSON.stringify(a)})' class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px]">Acta</button>
                             <button onclick="removeAppearance(${a.playerId})" class="px-2 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px]">Quitar</button>
@@ -762,10 +777,36 @@ async function openMatchDetail(matchId) {
             }).join('');
         }
 
+        renderMatchEventsTimeline(match.events || []);
         openModal('modal-match-detail');
     } catch (err) {
         showToast(err.message, 'error');
     }
+}
+
+function renderMatchEventsTimeline(events) {
+    const container = document.getElementById('md-events-timeline');
+    if (!events.length) {
+        container.innerHTML = `<p class="text-xs text-slate-500">Sin eventos registrados en la línea temporal.</p>`;
+        return;
+    }
+
+    const icons = {
+        GOAL: '⚽',
+        YELLOW_CARD: '🟨',
+        RED_CARD: '🟥',
+        SUBSTITUTION: '🔄'
+    };
+
+    container.innerHTML = events.map(ev => `
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-xs">
+            <span class="font-mono font-bold text-emerald-400">${ev.minute}'</span>
+            <span>${icons[ev.eventType] || '•'}</span>
+            <span class="font-semibold text-white">#${ev.shirtNumber} ${ev.playerFullName}</span>
+            ${ev.notes ? `<span class="text-slate-400 text-[11px]">(${ev.notes})</span>` : ''}
+            <button type="button" onclick="deleteMatchEvent(${ev.id})" class="ml-1 text-slate-500 hover:text-rose-400" title="Eliminar evento">×</button>
+        </div>
+    `).join('');
 }
 
 async function handleMatchResultSubmit(e) {
@@ -803,11 +844,12 @@ function openAppearanceEditor(app) {
     box.classList.remove('hidden');
     document.getElementById('edit-app-title').textContent = `Acta: #${app.shirtNumber} ${app.playerFullName || app.fullName}`;
     document.getElementById('edit-app-playerId').value = app.playerId;
-    document.getElementById('edit-app-status').value = app.callUpStatus;
+    document.getElementById('edit-app-status').value = app.callUpStatus === 'NOT_CALLED' ? 'SUBSTITUTE' : app.callUpStatus;
     document.getElementById('edit-app-minutes').value = app.minutesPlayed;
     document.getElementById('edit-app-goals').value = app.goals;
     document.getElementById('edit-app-assists').value = app.assists;
     document.getElementById('edit-app-yellows').value = app.yellowCards;
+    document.getElementById('edit-app-rating').value = app.rating !== null && app.rating !== undefined ? app.rating : '';
     document.getElementById('edit-app-red').checked = Boolean(app.redCard);
 }
 
@@ -818,13 +860,16 @@ function hideAppearanceEditor() {
 async function handleAppearanceStatsSubmit(e) {
     e.preventDefault();
     const playerId = document.getElementById('edit-app-playerId').value;
+    const ratingRaw = document.getElementById('edit-app-rating').value;
+
     const payload = {
         callUpStatus: document.getElementById('edit-app-status').value,
         minutesPlayed: parseInt(document.getElementById('edit-app-minutes').value, 10),
         goals: parseInt(document.getElementById('edit-app-goals').value, 10),
         assists: parseInt(document.getElementById('edit-app-assists').value, 10),
         yellowCards: parseInt(document.getElementById('edit-app-yellows').value, 10),
-        redCard: document.getElementById('edit-app-red').checked
+        redCard: document.getElementById('edit-app-red').checked,
+        rating: ratingRaw ? parseFloat(ratingRaw) : null
     };
 
     try {
@@ -835,7 +880,6 @@ async function handleAppearanceStatsSubmit(e) {
         showToast(err.message, 'error');
     }
 }
-
 async function removeAppearance(playerId) {
     try {
         await api.removePlayerFromMatch(state.currentMatchId, playerId);
@@ -1457,6 +1501,7 @@ function renderAnalyticsTable() {
                     </div>
                 </td>
                 <td class="py-3 px-3 text-center font-mono font-semibold text-purple-300">${p.averageRpe.toFixed(1)}</td>
+                <td class="py-3 px-3 text-center">${formatRatingBadge(p.averageRating)}</td>
                 <td class="py-3 px-3 text-right">
                     <button onclick="openPlayerStatsModal(${p.playerId})" class="text-xs text-emerald-400 hover:underline font-medium">Ficha</button>
                 </td>
@@ -1576,4 +1621,136 @@ function getRecoveryProgress(startStr, endStr) {
     if (remainingDays < 0) label = `Alta vencida (${Math.abs(remainingDays)}d)`;
 
     return { percent, label };
+}
+
+function formatRatingBadge(rating, isMvp = false) {
+    if (rating === null || rating === undefined || rating === 0) {
+        return `<span class="text-slate-600 font-mono">-</span>`;
+    }
+    const val = Number(rating).toFixed(1);
+    let colorClass = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+    if (rating >= 8.5) colorClass = 'bg-cyan-500/25 text-cyan-300 border-cyan-400/50';
+    else if (rating >= 7.0) colorClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+    else if (rating >= 6.0) colorClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+
+    const mvpTag = isMvp
+        ? `<span class="ml-1 px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-extrabold text-[9px] tracking-tight" title="MVP del Partido">★ MVP</span>`
+        : '';
+
+    return `<span class="inline-flex items-center font-mono font-bold px-2 py-0.5 rounded border text-[11px] ${colorClass}">${val}</span>${mvpTag}`;
+}
+
+async function handleMatchEventSubmit(e) {
+    e.preventDefault();
+    const payload = {
+        minute: parseInt(document.getElementById('event-minute').value, 10),
+        playerId: parseInt(document.getElementById('event-player-select').value, 10),
+        eventType: document.getElementById('event-type-select').value,
+        notes: document.getElementById('event-notes').value.trim() || null
+    };
+
+    try {
+        await api.addMatchEvent(state.currentMatchId, payload);
+        e.target.reset();
+        showToast('Evento añadido a la cronología', 'success');
+        openMatchDetail(state.currentMatchId);
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function deleteMatchEvent(eventId) {
+    try {
+        await api.deleteMatchEvent(state.currentMatchId, eventId);
+        showToast('Evento eliminado', 'info');
+        openMatchDetail(state.currentMatchId);
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function exportLineupPosterPng() {
+    const match = state.currentMatchData;
+    if (!match) return;
+
+    const nodes = FORMATIONS_MAP[state.tacticalFormation] || FORMATIONS_MAP['4-3-3'];
+    const appearances = match.appearances || [];
+    const user = JSON.parse(localStorage.getItem('squad_user') || '{}');
+    const clubName = (user.clubName || 'SQUADMANAGER FC').toUpperCase();
+    const condition = match.homeMatch ? 'LOCAL' : 'VISITANTE';
+
+    const startersIds = new Set(Object.values(state.tacticalSlots));
+    const bench = appearances
+        .filter(a => a.callUpStatus !== 'NOT_CALLED' && !startersIds.has(a.playerId))
+        .sort((a, b) => a.shirtNumber - b.shirtNumber);
+
+    const nodesHtml = nodes.map(n => {
+        const pId = state.tacticalSlots[n.slot];
+        const app = appearances.find(a => a.playerId === pId);
+        const dorsal = app ? app.shirtNumber : '?';
+        const surname = app
+            ? (app.playerFullName.split(' ').slice(1).join(' ') || app.playerFullName)
+            : n.role;
+
+        return `
+            <div style="position:absolute; left:${n.x}%; top:${n.y}%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center;">
+                <div style="width:42px; height:42px; border-radius:9999px; background:#090d16; border:2.5px solid #34d399; color:#34d399; font-family:monospace; font-weight:800; font-size:16px; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 14px rgba(0,0,0,0.65);">
+                    ${dorsal}
+                </div>
+                <div style="margin-top:4px; padding:2px 8px; border-radius:6px; background:rgba(9,13,22,0.92); border:1px solid rgba(148,163,184,0.25); color:#ffffff; font-size:11px; font-weight:700; white-space:nowrap;">
+                    ${surname}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const benchText = bench.length
+        ? bench.map(b => `#${b.shirtNumber} ${b.playerFullName}`).join('  ·  ')
+        : 'Sin suplentes registrados';
+
+    const sandbox = document.getElementById('poster-render-sandbox');
+    sandbox.innerHTML = `
+        <div id="matchday-poster-card" style="width:540px; padding:28px; background:linear-gradient(160deg, #070b14 0%, #0f172a 55%, #064e3b 100%); color:#ffffff; font-family:Inter, sans-serif; border:2px solid #1e293b;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.12); padding-bottom:14px; margin-bottom:16px;">
+                <div>
+                    <div style="font-size:10px; font-weight:800; letter-spacing:2px; color:#34d399; text-transform:uppercase;">ONCE INICIAL · ${match.competition}</div>
+                    <div style="font-size:22px; font-weight:900; letter-spacing:-0.5px; margin-top:2px;">${clubName}</div>
+                </div>
+                <div style="padding:6px 12px; border-radius:10px; background:rgba(16,185,129,0.18); border:1px solid rgba(52,211,153,0.4); font-family:monospace; font-weight:800; font-size:15px; color:#34d399;">
+                    ${state.tacticalFormation}
+                </div>
+            </div>
+
+            <div style="background:rgba(15,23,42,0.75); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px 14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:14px; font-weight:800;">VS ${match.opponent.toUpperCase()} <span style="font-size:11px; color:#94a3b8; font-weight:600;">(${condition})</span></div>
+                <div style="font-size:11px; color:#cbd5e1;">${formatDateTime(match.matchDate)}</div>
+            </div>
+
+            <div style="position:relative; width:100%; height:440px; border-radius:16px; border:2px solid rgba(255,255,255,0.35); background:repeating-linear-gradient(0deg, #064e3b 0%, #064e3b 10%, #065f46 10%, #065f46 20%); overflow:hidden;">
+                <div style="position:absolute; top:50%; left:0; right:0; height:1.5px; background:rgba(255,255,255,0.3);"></div>
+                <div style="position:absolute; top:50%; left:50%; width:110px; height:110px; transform:translate(-50%,-50%); border:1.5px solid rgba(255,255,255,0.3); border-radius:9999px;"></div>
+                <div style="position:absolute; top:0; left:50%; width:240px; height:70px; transform:translateX(-50%); border:1.5px solid rgba(255,255,255,0.3); border-top:none;"></div>
+                <div style="position:absolute; bottom:0; left:50%; width:240px; height:70px; transform:translateX(-50%); border:1.5px solid rgba(255,255,255,0.3); border-bottom:none;"></div>
+                ${nodesHtml}
+            </div>
+
+            <div style="margin-top:14px; padding:10px 14px; border-radius:12px; background:rgba(9,13,22,0.85); border:1px solid rgba(255,255,255,0.08);">
+                <div style="font-size:10px; font-weight:800; color:#94a3b8; letter-spacing:1px; margin-bottom:4px;">BANQUILLO</div>
+                <div style="font-size:11px; color:#e2e8f0; line-height:1.5;">${benchText}</div>
+            </div>
+        </div>
+    `;
+
+    try {
+        const posterEl = document.getElementById('matchday-poster-card');
+        const canvas = await html2canvas(posterEl, { scale: 2, backgroundColor: '#070b14' });
+        const link = document.createElement('a');
+        link.download = `once-inicial-vs-${match.opponent.toLowerCase().replace(/\s+/g, '-')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        sandbox.innerHTML = '';
+        showToast('Cartel gráfico del Once Inicial descargado', 'success');
+    } catch (err) {
+        showToast('Error al generar la imagen PNG', 'error');
+    }
 }

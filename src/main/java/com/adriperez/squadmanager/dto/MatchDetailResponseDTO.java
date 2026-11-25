@@ -1,6 +1,8 @@
+// MatchDetailResponseDTO.java
 package com.adriperez.squadmanager.dto;
 
 import com.adriperez.squadmanager.model.Match;
+import com.adriperez.squadmanager.model.MatchEvent;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,9 +16,14 @@ public record MatchDetailResponseDTO(
         Integer goalsFor,
         Integer goalsAgainst,
         String formation,
-        List<MatchAppearanceResponseDTO> appearances
+        List<MatchAppearanceResponseDTO> appearances,
+        List<MatchEventResponseDTO> events
 ) {
     public static MatchDetailResponseDTO fromEntity(Match match) {
+        return fromEntity(match, List.of());
+    }
+
+    public static MatchDetailResponseDTO fromEntity(Match match, List<MatchEvent> events) {
         if (match == null) {
             return null;
         }
@@ -29,7 +36,8 @@ public record MatchDetailResponseDTO(
                 match.getGoalsFor(),
                 match.getGoalsAgainst(),
                 match.getFormation() != null ? match.getFormation() : "4-3-3",
-                match.getMatchAppearances().stream().map(MatchAppearanceResponseDTO::fromEntity).toList()
+                match.getMatchAppearances().stream().map(MatchAppearanceResponseDTO::fromEntity).toList(),
+                events.stream().map(MatchEventResponseDTO::fromEntity).toList()
         );
     }
 }

@@ -18,6 +18,12 @@ public interface MatchAppearanceRepository extends JpaRepository<MatchAppearance
 
     long countByMatchIdAndCallUpStatus(Long matchId, CallUpStatus callUpStatus);
 
+    @Query("SELECT COALESCE(SUM(ma.yellowCards), 0) FROM MatchAppearance ma WHERE ma.player.id = :playerId")
+    long getTotalYellowCardsByPlayerId(@Param("playerId") Long playerId);
+
+    @Query("SELECT ma.player.id, COALESCE(SUM(ma.yellowCards), 0) FROM MatchAppearance ma WHERE ma.player.user.id = :userId GROUP BY ma.player.id")
+    List<Object[]> getYellowCardsCountByUserId(@Param("userId") Long userId);
+
     @Query("SELECT new com.adriperez.squadmanager.dto.PlayerMatchStatsDTO(" +
             "p.id, " +
             "COUNT(CASE WHEN ma.callUpStatus <> com.adriperez.squadmanager.model.enums.CallUpStatus.NOT_CALLED THEN 1 END), " +
@@ -31,7 +37,8 @@ public interface MatchAppearanceRepository extends JpaRepository<MatchAppearance
             "COUNT(CASE WHEN ma.minutesPlayed > 0 AND m.goalsFor IS NOT NULL AND m.goalsAgainst IS NOT NULL AND m.goalsFor > m.goalsAgainst THEN 1 END), " +
             "COUNT(CASE WHEN ma.minutesPlayed > 0 AND m.goalsFor IS NOT NULL AND m.goalsAgainst IS NOT NULL THEN 1 END), " +
             "CAST(COALESCE(SUM(ma.yellowCards), 0) AS Long), " +
-            "COUNT(CASE WHEN ma.redCard = true THEN 1 END)) " +
+            "COUNT(CASE WHEN ma.redCard = true THEN 1 END), " +
+            "CAST(COALESCE(AVG(ma.rating), 0.0) AS Double)) " +
             "FROM Player p LEFT JOIN p.matchAppearances ma LEFT JOIN ma.match m " +
             "WHERE p.id = :playerId " +
             "GROUP BY p.id")
@@ -50,15 +57,10 @@ public interface MatchAppearanceRepository extends JpaRepository<MatchAppearance
             "COUNT(CASE WHEN ma.minutesPlayed > 0 AND m.goalsFor IS NOT NULL AND m.goalsAgainst IS NOT NULL AND m.goalsFor > m.goalsAgainst THEN 1 END), " +
             "COUNT(CASE WHEN ma.minutesPlayed > 0 AND m.goalsFor IS NOT NULL AND m.goalsAgainst IS NOT NULL THEN 1 END), " +
             "CAST(COALESCE(SUM(ma.yellowCards), 0) AS Long), " +
-            "COUNT(CASE WHEN ma.redCard = true THEN 1 END)) " +
+            "COUNT(CASE WHEN ma.redCard = true THEN 1 END), " +
+            "CAST(COALESCE(AVG(ma.rating), 0.0) AS Double)) " +
             "FROM Player p LEFT JOIN p.matchAppearances ma LEFT JOIN ma.match m " +
             "WHERE p.user.id = :userId " +
             "GROUP BY p.id")
     List<PlayerMatchStatsDTO> getAllPlayersMatchStatsByUserId(@Param("userId") Long userId);
-
-    @Query("SELECT COALESCE(SUM(ma.yellowCards), 0) FROM MatchAppearance ma WHERE ma.player.id = :playerId")
-    long getTotalYellowCardsByPlayerId(@Param("playerId") Long playerId);
-
-    @Query("SELECT ma.player.id, COALESCE(SUM(ma.yellowCards), 0) FROM MatchAppearance ma WHERE ma.player.user.id = :userId GROUP BY ma.player.id")
-    List<Object[]> getYellowCardsCountByUserId(@Param("userId") Long userId);
 }

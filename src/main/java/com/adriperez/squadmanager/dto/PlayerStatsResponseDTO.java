@@ -1,3 +1,4 @@
+// PlayerStatsResponseDTO.java
 package com.adriperez.squadmanager.dto;
 
 import com.adriperez.squadmanager.model.enums.PlayerStatus;
@@ -26,6 +27,7 @@ public record PlayerStatsResponseDTO(
         long yellowCards,
         long redCards,
         boolean warnedByCards,
+        double averageRating,
         long totalSessions,
         long sessionsPresent,
         double attendancePercentage,

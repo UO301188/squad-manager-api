@@ -1,3 +1,4 @@
+// MatchAppearanceResponseDTO.java
 package com.adriperez.squadmanager.dto;
 
 import com.adriperez.squadmanager.model.MatchAppearance;
@@ -16,7 +17,8 @@ public record MatchAppearanceResponseDTO(
         Integer assists,
         Integer yellowCards,
         boolean redCard,
-        Integer lineupSlot
+        Integer lineupSlot,
+        Double rating
 ) {
     public static MatchAppearanceResponseDTO fromEntity(MatchAppearance appearance) {
         return new MatchAppearanceResponseDTO(
@@ -31,7 +33,8 @@ public record MatchAppearanceResponseDTO(
                 appearance.getAssists(),
                 appearance.getYellowCards(),
                 appearance.isRedCard(),
-                appearance.getLineupSlot()
+                appearance.getLineupSlot(),
+                appearance.getRating()
         );
     }
 }

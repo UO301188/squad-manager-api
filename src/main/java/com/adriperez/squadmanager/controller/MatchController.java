@@ -88,4 +88,19 @@ public class MatchController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }
+
+    @PostMapping("/{matchId}/events")
+    public ResponseEntity<MatchEventResponseDTO> addMatchEvent(
+            @PathVariable Long matchId,
+            @Valid @RequestBody MatchEventRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(matchService.addMatchEvent(matchId, dto));
+    }
+
+    @DeleteMapping("/{matchId}/events/{eventId}")
+    public ResponseEntity<Void> deleteMatchEvent(
+            @PathVariable Long matchId,
+            @PathVariable Long eventId) {
+        matchService.deleteMatchEvent(matchId, eventId);
+        return ResponseEntity.noContent().build();
+    }
 }

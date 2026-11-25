@@ -1,3 +1,4 @@
+// PlayerMatchStatsDTO.java
 package com.adriperez.squadmanager.dto;
 
 public record PlayerMatchStatsDTO(
@@ -13,5 +14,6 @@ public record PlayerMatchStatsDTO(
         Long matchesWon,
         Long matchesFinishedPlayed,
         Long yellowCards,
-        Long redCards
+        Long redCards,
+        Double averageRating
 ) {}
