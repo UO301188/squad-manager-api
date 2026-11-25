@@ -144,7 +144,7 @@ function switchView(view) {
         btn.classList.toggle('active', btn.dataset.view === view);
     });
 
-    ['dashboard', 'players', 'matches', 'trainings', 'analytics'].forEach(v => {
+    ['dashboard', 'players', 'matches', 'trainings', 'analytics', 'help'].forEach(v => {
         document.getElementById(`view-${v}`).classList.toggle('hidden', v !== view);
     });
 
@@ -177,6 +177,11 @@ function switchView(view) {
             title: 'Analítica y Rendimiento',
             sub: 'Métricas agregadas en SQL: minutos, goles/90, compromiso en entrenos y carga física',
             action: `<button onclick="loadAnalytics()" class="btn-secondary"><i data-lucide="refresh-cw" class="w-4 h-4"></i> Recalcular</button>`
+        },
+        help: {
+            title: 'Guía y Centro de Ayuda',
+            sub: 'Manual completo de uso, flujos operativos y reglas automáticas de SquadManager Pro',
+            action: `<button onclick="switchView('dashboard')" class="btn-secondary"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> Volver al Dashboard</button>`
         }
     };
 
@@ -190,6 +195,7 @@ function switchView(view) {
     if (view === 'matches') loadMatches();
     if (view === 'trainings') loadTrainings();
     if (view === 'analytics') loadAnalytics();
+    if (view === 'help') initHelpView();
 }
 
 function setupEventListeners() {
@@ -230,6 +236,16 @@ function setupEventListeners() {
     document.getElementById('compare-player-b').addEventListener('change', renderPlayerComparison);
 
     document.getElementById('form-match-event').addEventListener('submit', handleMatchEventSubmit);
+
+    document.getElementById('help-search-input').addEventListener('input', renderHelpGuides);
+    document.querySelectorAll('#help-category-filters .filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('#help-category-filters .filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            helpState.category = chip.dataset.cat;
+            renderHelpGuides();
+        });
+    });
 }
 
 // ==================== DASHBOARD ====================
@@ -1827,5 +1843,232 @@ async function exportLineupPosterPng() {
         showToast('Cartel gráfico del Once Inicial descargado', 'success');
     } catch (err) {
         showToast('Error al generar la imagen PNG', 'error');
+    }
+}
+
+// ==================== GUÍA Y CENTRO DE AYUDA ====================
+const helpState = {
+    category: 'ALL',
+    initialized: false
+};
+
+const HELP_GUIDES = [
+    {
+        category: 'SQUAD',
+        badge: 'Plantilla y Enfermería',
+        badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+        icon: 'users',
+        title: 'Altas, Dorsales y Parte Médico con Recuperación',
+        targetView: 'players',
+        targetLabel: 'Abrir Plantilla',
+        summary: 'Administra tu plantilla completa con dorsales únicos (1-99) y realiza el seguimiento médico de cada baja.',
+        steps: [
+            'Pulsa <strong>Nuevo Jugador</strong> para dar de alta un futbolista. El sistema impide duplicar dorsales dentro de tu club.',
+            'Si marcas el estado como <strong>Lesionado</strong>, se desplegará el módulo de <em>Parte Médico</em> para anotar el diagnóstico, la fecha de baja y la fecha estimada de alta.',
+            'Con ambas fechas rellenas, la ficha del jugador y el Dashboard mostrarán automáticamente el <strong>porcentaje de recuperación</strong> y la cuenta atrás de días restantes.'
+        ]
+    },
+    {
+        category: 'SQUAD',
+        badge: 'Disciplina Automática',
+        badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+        icon: 'shield-alert',
+        title: 'Ciclo de 5 Amarillas, Apercibidos y Sanciones',
+        targetView: 'players',
+        targetLabel: 'Ver Estado Plantilla',
+        summary: 'Control disciplinario automatizado para evitar alineaciones indebidas en competición.',
+        steps: [
+            'Cada tarjeta amarilla registrada en un acta suma al ciclo acumulativo de 5 tarjetas. Al llegar a <strong>4 amarillas</strong> (4, 9, 14...), el jugador recibe la etiqueta <strong>APERCIBIDO</strong>.',
+            'Si un jugador recibe su <strong>5ª amarilla</strong> del ciclo o una <strong>tarjeta roja directa</strong> al guardar un acta, su estado pasa automáticamente a <strong>Sancionado</strong> y el sistema bloqueará su convocatoria.',
+            'Una vez cumplido el partido de sanción, edita su ficha en <em>Plantilla</em> y vuelve a poner su estado en <strong>Disponible</strong>.'
+        ]
+    },
+    {
+        category: 'MATCHES',
+        badge: 'Convocatorias y Exportación',
+        badgeClass: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+        icon: 'file-down',
+        title: 'Convocatoria Previa vs. Alineación (PDF y WhatsApp)',
+        targetView: 'matches',
+        targetLabel: 'Ir a Partidos',
+        summary: 'Prepara la lista del partido y compártela con el vestuario en un clic.',
+        steps: [
+            'Entra en <strong>Convocatoria y Acta</strong> de un partido y añade jugadores como <em>Titular</em> (máximo 11), <em>Suplente</em> o <em>No convocado</em>.',
+            '<strong>Modo Convocatoria Previa:</strong> Deja desmarcada la casilla <em>Incluir Titular/Suplente</em> y pulsa <strong>PDF Oficial</strong> o <strong>Copiar WhatsApp</strong>. Se generará la lista ordenada por demarcación sin desvelar el once inicial.',
+            '<strong>Modo Alineación Completa:</strong> Marca la casilla <em>Incluir Titular/Suplente</em> si deseas que el PDF o mensaje de WhatsApp especifique quién sale de inicio y quién va al banquillo.'
+        ]
+    },
+    {
+        category: 'TACTICS',
+        badge: 'Pizarra Táctica e Imagen',
+        badgeClass: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
+        icon: 'layout-grid',
+        title: 'Pizarra Interactiva y Cartel Gráfico PNG (Stories)',
+        targetView: 'matches',
+        targetLabel: 'Probar Pizarra',
+        summary: 'Distribuye tu dibujo táctico sobre el césped y descarga una imagen profesional para redes o WhatsApp.',
+        steps: [
+            'Dentro del detalle de un partido, cambia a la pestaña superior <strong>Pizarra Táctica</strong> y elige entre <strong>4-3-3</strong>, <strong>4-4-2</strong>, <strong>4-2-3-1</strong> o <strong>3-5-2</strong>.',
+            'Pulsa <strong>Rellenar con Titulares Actuales</strong> o haz clic directamente sobre cualquier dorsal en el terreno de juego para asignar a un jugador convocado.',
+            'Pulsa <strong>Guardar Once Inicial y Pizarra</strong> para sincronizar los titulares y haz clic en <strong>Descargar Cartel Gráfico PNG</strong> para obtener la imagen lista para compartir.'
+        ]
+    },
+    {
+        category: 'MATCHES',
+        badge: 'Actas, Notas y Cronología',
+        badgeClass: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+        icon: 'trophy',
+        title: 'Acta Post-Partido, Notas Sofascore (1-10), MVP y Minuto a Minuto',
+        targetView: 'matches',
+        targetLabel: 'Gestionar Actas',
+        summary: 'Documenta todo lo ocurrido tras el pitido final para alimentar las estadísticas individuales y colectivas.',
+        steps: [
+            'Guarda el <strong>Marcador Oficial</strong> (goles a favor y en contra) para actualizar la racha del equipo y las porterías a cero.',
+            'Pulsa <strong>Acta</strong> en cada jugador que haya participado para registrar minutos, goles, asistencias, tarjetas y su <strong>Nota (1.0 a 10.0)</strong>. La puntuación más alta recibirá automáticamente la corona dorada <strong>★ MVP</strong>.',
+            'En la sección inferior <strong>Cronología del Partido</strong>, registra goles, tarjetas o cambios indicando el minuto exacto.'
+        ]
+    },
+    {
+        category: 'TRAININGS',
+        badge: 'Entrenamientos y Carga',
+        badgeClass: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+        icon: 'activity',
+        title: 'Control de Asistencia Diaria y Esfuerzo Percibido (RPE)',
+        targetView: 'trainings',
+        targetLabel: 'Ir a Entrenamientos',
+        summary: 'Mide el compromiso semanal de cada jugador y controla la carga física de las sesiones.',
+        steps: [
+            'Crea una sesión indicando fecha, duración en minutos y objetivo táctico/físico.',
+            'Pulsa <strong>Control Asistencia y RPE</strong> para pasar lista: <em>Presente</em>, <em>Ausencia Justificada</em> (requiere motivo obligatorio), <em>Ausencia Injustificada</em> o <em>Readaptación Lesión</em>.',
+            'Para los jugadores que entrenan, introduce su <strong>RPE (1 a 10)</strong>. Los jugadores ausentes no pueden registrar RPE.'
+        ]
+    },
+    {
+        category: 'ANALYTICS',
+        badge: 'Scouting y Rendimiento',
+        badgeClass: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+        icon: 'bar-chart-3',
+        title: 'Comparador Cara a Cara (Radar) y Métricas Avanzadas',
+        targetView: 'analytics',
+        targetLabel: 'Abrir Analítica',
+        summary: 'Evalúa el rendimiento real ponderado por cada 90 minutos y compara perfiles de tu plantilla.',
+        steps: [
+            'En <strong>Analítica y Rendimiento</strong>, utiliza los dos selectores superiores para enfrentar a dos jugadores en el <strong>Gráfico Radar</strong> (minutos, G+A/90\', % victorias, porterías a cero, asistencia y RPE).',
+            'En la tabla inferior puedes filtrar por demarcación y ordenar por <strong>Nota Media</strong>, <strong>G+A cada 90\'</strong>, <strong>Porterías a cero</strong> o <strong>% Victorias</strong>.',
+            'Pulsa <strong>Ficha</strong> en cualquier fila para abrir el resumen ejecutivo individual de ese futbolista.'
+        ]
+    }
+];
+
+const HELP_FAQS = [
+    {
+        question: '¿Por qué no me deja convocar a un jugador en un partido?',
+        answer: 'Por seguridad reglamentaria, el sistema bloquea automáticamente la convocatoria (como Titular o Suplente) de cualquier jugador cuyo estado en Plantilla sea <strong>Lesionado</strong>, <strong>Sancionado</strong> o <strong>No disponible</strong>. Si el jugador ya se ha recuperado o ha cumplido su sanción, cambia su estado a <em>Disponible</em> en la pestaña Plantilla.'
+    },
+    {
+        question: '¿Cómo vuelvo a habilitar a un jugador sancionado tras cumplir su partido de castigo?',
+        answer: 'Cuando un futbolista recibe tarjeta roja o acumula 5 amarillas, pasa automáticamente a <em>Sancionado</em> para que no lo alinees por error en el siguiente encuentro. Una vez disputado ese partido sin convocarlo, ve a <strong>Plantilla → Editar</strong> en su ficha y cambia su estado de nuevo a <strong>Disponible</strong>.'
+    },
+    {
+        question: '¿Cuándo suma una "Portería a Cero" (Clean Sheet) a un jugador?',
+        answer: 'Para reflejar una participación real en el resultado defensivo, el sistema contabiliza una portería a cero a un jugador cuando el partido tiene marcador cerrado con <strong>0 goles en contra</strong> y el futbolista ha disputado al menos <strong>45 minutos</strong> en ese encuentro.'
+    },
+    {
+        question: '¿Por qué me da error al guardar 0 minutos con goles, tarjetas o nota?',
+        answer: 'Por coherencia estadística, un jugador con <strong>0 minutos jugados</strong> no puede registrar goles, asistencias, tarjetas ni valoración (1-10). Asimismo, un jugador marcado como <em>No convocado</em> no puede tener minutos disputados.'
+    },
+    {
+        question: '¿Los datos de mi club son privados y se guardan de forma permanente?',
+        answer: 'Sí. Cada cuenta registrada tiene su propio espacio aislado (multi-tenant): ningún otro entrenador ni club puede ver tus jugadores, partidos, pizarras o estadísticas. Toda la información queda almacenada de forma persistente en la base de datos.'
+    }
+];
+
+function initHelpView() {
+    if (!helpState.initialized) {
+        renderHelpFaqs();
+        helpState.initialized = true;
+    }
+    renderHelpGuides();
+}
+
+function renderHelpGuides() {
+    const grid = document.getElementById('help-guides-grid');
+    if (!grid) return;
+
+    const query = (document.getElementById('help-search-input')?.value || '').toLowerCase().trim();
+
+    const filtered = HELP_GUIDES.filter(g => {
+        const matchesCat = helpState.category === 'ALL' || g.category === helpState.category;
+        if (!matchesCat) return false;
+        if (!query) return true;
+
+        const haystack = `${g.title} ${g.summary} ${g.badge} ${g.steps.join(' ')}`.toLowerCase();
+        return haystack.includes(query);
+    });
+
+    if (!filtered.length) {
+        grid.innerHTML = `
+            <div class="col-span-full glass-card p-8 rounded-2xl text-center">
+                <p class="text-sm text-slate-400">No se encontraron guías que coincidan con "<span class="text-white font-semibold">${query}</span>".</p>
+            </div>`;
+        return;
+    }
+
+    grid.innerHTML = filtered.map(g => `
+        <div class="glass-card p-5 rounded-2xl flex flex-col justify-between gap-4 hover:border-slate-700 transition-all">
+            <div class="space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${g.badgeClass}">${g.badge}</span>
+                    <div class="p-2 rounded-lg bg-slate-800/80 text-slate-300"><i data-lucide="${g.icon}" class="w-4 h-4"></i></div>
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-white">${g.title}</h4>
+                    <p class="text-xs text-slate-400 mt-1">${g.summary}</p>
+                </div>
+                <ol class="space-y-2 pt-2 border-t border-slate-800/70 list-decimal list-inside text-xs text-slate-300 leading-relaxed">
+                    ${g.steps.map(step => `<li>${step}</li>`).join('')}
+                </ol>
+            </div>
+            <div class="pt-3 border-t border-slate-800/70 flex justify-end">
+                <button type="button" onclick="switchView('${g.targetView}')" class="btn-secondary py-1.5 px-3 text-xs">
+                    <span>${g.targetLabel}</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-emerald-400"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+
+    lucide.createIcons();
+}
+
+function renderHelpFaqs() {
+    const container = document.getElementById('help-faq-list');
+    if (!container) return;
+
+    container.innerHTML = HELP_FAQS.map((faq, idx) => `
+        <div class="rounded-xl bg-pitch-900/90 border border-slate-800 overflow-hidden">
+            <button type="button" onclick="toggleFaqItem(${idx})" class="w-full p-3.5 text-left flex items-center justify-between gap-3 hover:bg-slate-800/40 transition-colors">
+                <span class="text-xs font-bold text-white">${faq.question}</span>
+                <i data-lucide="chevron-down" id="faq-icon-${idx}" class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200"></i>
+            </button>
+            <div id="faq-answer-${idx}" class="${idx === 0 ? '' : 'hidden'} px-3.5 pb-3.5 pt-1 text-xs text-slate-300 leading-relaxed border-t border-slate-800/60">
+                ${faq.answer}
+            </div>
+        </div>
+    `).join('');
+
+    const firstIcon = document.getElementById('faq-icon-0');
+    if (firstIcon) firstIcon.style.transform = 'rotate(180deg)';
+    lucide.createIcons();
+}
+
+function toggleFaqItem(index) {
+    const answer = document.getElementById(`faq-answer-${index}`);
+    const icon = document.getElementById(`faq-icon-${index}`);
+    if (!answer) return;
+
+    const isHidden = answer.classList.toggle('hidden');
+    if (icon) {
+        icon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
     }
 }
