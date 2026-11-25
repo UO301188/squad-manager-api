@@ -249,6 +249,17 @@
                 </div>
             </section>
 
+            <!-- Enfermería y Sanciones -->
+            <div class="glass-card p-5 rounded-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="stethoscope" class="w-4 h-4 text-rose-400"></i> Enfermería y Control Disciplinario
+                    </h3>
+                    <span class="text-[11px] text-slate-400">Bajas médicas, sancionados y apercibidos (4A)</span>
+                </div>
+                <div id="dashboard-medical-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+            </div>
+
             <!-- ==================== VISTA 2: PLANTILLA ==================== -->
             <section id="view-players" class="hidden space-y-5">
                 <!-- Barra de filtros -->
@@ -416,7 +427,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1">Estado *</label>
-                    <select id="player-status" required class="input-dark w-full px-3 py-2 rounded-xl text-sm">
+                    <select id="player-status" onchange="toggleInjuryFields()" required class="input-dark w-full px-3 py-2 rounded-xl text-sm">
                         <option value="AVAILABLE">Disponible</option>
                         <option value="INJURED">Lesionado</option>
                         <option value="SUSPENDED">Sancionado</option>
@@ -424,6 +435,28 @@
                     </select>
                 </div>
             </div>
+
+            <!-- Campos Parte Médico (visibles si status == INJURED) -->
+            <div id="player-injury-fields" class="hidden p-4 rounded-xl bg-rose-950/25 border border-rose-500/30 space-y-3">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                        <i data-lucide="heart-pulse" class="w-3.5 h-3.5"></i> Parte Médico de Recuperación
+                    </span>
+                <div>
+                    <label class="block text-[11px] text-slate-400 mb-1">Diagnóstico / Molestia</label>
+                    <input type="text" id="player-injuryDescription" class="input-dark w-full px-3 py-2 rounded-xl text-xs" placeholder="Ej. Sobrecarga en isquiotibial derecho">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">Fecha de Baja</label>
+                        <input type="date" id="player-injuryStartDate" class="input-dark w-full px-3 py-2 rounded-xl text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 mb-1">Alta Estimada</label>
+                        <input type="date" id="player-expectedReturnDate" class="input-dark w-full px-3 py-2 rounded-xl text-xs">
+                    </div>
+                </div>
+            </div>
+
             <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
                 <button type="button" onclick="closeModal('modal-player')" class="btn-secondary">Cancelar</button>
                 <button type="submit" class="btn-primary">Guardar Jugador</button>
