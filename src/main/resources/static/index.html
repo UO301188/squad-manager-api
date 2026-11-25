@@ -130,6 +130,10 @@
                     <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
                     <span>Analítica y Rendimiento</span>
                 </button>
+                <button data-view="help" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Guía y Ayuda</span>
+                </button>
             </nav>
         </div>
 
@@ -444,6 +448,148 @@
                             </thead>
                             <tbody id="analytics-table-body" class="divide-y divide-slate-800/60 text-xs"></tbody>
                         </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== VISTA 6: GUÍA Y CENTRO DE AYUDA ==================== -->
+            <section id="view-help" class="hidden space-y-6">
+                <!-- Cabecera y Buscador -->
+                <div class="glass-card p-6 rounded-2xl border border-emerald-500/20 space-y-5">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div>
+                            <span class="text-[11px] font-mono uppercase tracking-widest text-emerald-400">Manual Operativo del Cuerpo Técnico</span>
+                            <h3 class="text-xl font-extrabold text-white mt-1">¿Qué puedes hacer en SquadManager Pro?</h3>
+                            <p class="text-xs text-slate-400 mt-1 max-w-2xl">
+                                Consulta cómo gestionar cada área del club, qué automatismos aplica el sistema (ciclos de tarjetas, sanciones, MVP, porterías a cero) y cómo exportar convocatorias o alineaciones.
+                            </p>
+                        </div>
+                        <div class="relative w-full lg:w-80 shrink-0">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                            <input type="text" id="help-search-input" placeholder="Buscar: amarillas, PDF, RPE, pizarra, MVP..." class="input-dark w-full pl-10 pr-4 py-2.5 text-xs rounded-xl">
+                        </div>
+                    </div>
+
+                    <!-- Filtros por Categoría -->
+                    <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80" id="help-category-filters">
+                        <button type="button" data-cat="ALL" class="filter-chip active">Todas las guías</button>
+                        <button type="button" data-cat="SQUAD" class="filter-chip">Plantilla, Médica y Sanciones</button>
+                        <button type="button" data-cat="MATCHES" class="filter-chip">Partidos, Actas y Exportación</button>
+                        <button type="button" data-cat="TACTICS" class="filter-chip">Pizarra Táctica y PNG</button>
+                        <button type="button" data-cat="TRAININGS" class="filter-chip">Entrenamientos y RPE</button>
+                        <button type="button" data-cat="ANALYTICS" class="filter-chip">Analítica y Radar</button>
+                    </div>
+                </div>
+
+                <!-- Flujo Semanal Recomendado -->
+                <div class="glass-card p-5 rounded-2xl space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                            <i data-lucide="compass" class="w-4 h-4 text-emerald-400"></i> Flujo de Trabajo Semanal Recomendado
+                        </h4>
+                        <span class="text-[11px] text-slate-500 hidden sm:inline">Rutina óptima de lunes a domingo</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                        <div class="p-4 rounded-xl bg-pitch-900/90 border border-slate-800 flex flex-col justify-between gap-3">
+                            <div>
+                                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400">PASO 1 · INICIO SEMANA</span>
+                                <h5 class="text-sm font-bold text-white mt-2">Revisa Plantilla y Bajas</h5>
+                                <p class="text-xs text-slate-400 mt-1 leading-relaxed">Actualiza altas médicas, registra lesiones con fecha estimada de vuelta y revisa qué jugadores están apercibidos (4 amarillas).</p>
+                            </div>
+                            <button type="button" onclick="switchView('players')" class="text-xs text-emerald-400 hover:text-emerald-300 font-semibold inline-flex items-center gap-1">
+                                Ir a Plantilla <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-pitch-900/90 border border-slate-800 flex flex-col justify-between gap-3">
+                            <div>
+                                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-500/15 text-purple-400">PASO 2 · ENTRE SEMANA</span>
+                                <h5 class="text-sm font-bold text-white mt-2">Entrenos y Carga RPE</h5>
+                                <p class="text-xs text-slate-400 mt-1 leading-relaxed">Crea cada sesión, pasa lista indicando presentes o ausencias justificadas y anota el esfuerzo percibido (RPE 1-10) de cada futbolista.</p>
+                            </div>
+                            <button type="button" onclick="switchView('trainings')" class="text-xs text-purple-400 hover:text-purple-300 font-semibold inline-flex items-center gap-1">
+                                Ir a Entrenamientos <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-pitch-900/90 border border-slate-800 flex flex-col justify-between gap-3">
+                            <div>
+                                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-500/15 text-blue-400">PASO 3 · PREVIA PARTIDO</span>
+                                <h5 class="text-sm font-bold text-white mt-2">Convocatoria y Pizarra</h5>
+                                <p class="text-xs text-slate-400 mt-1 leading-relaxed">Convoca a los disponibles, exporta la lista previa en PDF o WhatsApp, dibuja tu 11 en la pizarra y descarga el cartel PNG.</p>
+                            </div>
+                            <button type="button" onclick="switchView('matches')" class="text-xs text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1">
+                                Ir a Partidos <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-pitch-900/90 border border-slate-800 flex flex-col justify-between gap-3">
+                            <div>
+                                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-400">PASO 4 · POST-PARTIDO</span>
+                                <h5 class="text-sm font-bold text-white mt-2">Acta, MVP y Analítica</h5>
+                                <p class="text-xs text-slate-400 mt-1 leading-relaxed">Guarda el marcador, rellena minutos, goles, tarjetas y notas (1-10) en cada acta y analiza el rendimiento en el comparador Radar.</p>
+                            </div>
+                            <button type="button" onclick="switchView('analytics')" class="text-xs text-amber-400 hover:text-amber-300 font-semibold inline-flex items-center gap-1">
+                                Ir a Analítica <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid Dinámico de Guías Detalladas -->
+                <div id="help-guides-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-5"></div>
+
+                <!-- Escala Visual de Referencia RPE + Preguntas Frecuentes -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Escala RPE -->
+                    <div class="glass-card p-5 rounded-2xl lg:col-span-5 space-y-4">
+                        <div>
+                            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i data-lucide="activity" class="w-4 h-4 text-purple-400"></i> Guía Rápida: Escala RPE (1 a 10)
+                            </h4>
+                            <p class="text-xs text-slate-400 mt-1">Referencia estándar para puntuar la fatiga subjetiva al terminar cada entrenamiento:</p>
+                        </div>
+                        <div class="space-y-2.5 text-xs">
+                            <div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/25 flex items-center justify-between gap-3">
+                                <div>
+                                    <span class="font-bold text-emerald-400 block">1 - 3 · Regenerativo / Muy Suave</span>
+                                    <span class="text-[11px] text-slate-400">Activación pre-partido, rondos suaves o recuperación post-encuentro.</span>
+                                </div>
+                                <span class="font-mono font-extrabold text-emerald-400 shrink-0">1-3</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-blue-950/30 border border-blue-500/25 flex items-center justify-between gap-3">
+                                <div>
+                                    <span class="font-bold text-blue-400 block">4 - 6 · Carga Táctica Moderada</span>
+                                    <span class="text-[11px] text-slate-400">Trabajo posicional, balón parado y automatismos sin fatiga extrema.</span>
+                                </div>
+                                <span class="font-mono font-extrabold text-blue-400 shrink-0">4-6</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-amber-950/30 border border-amber-500/25 flex items-center justify-between gap-3">
+                                <div>
+                                    <span class="font-bold text-amber-400 block">7 - 8 · Alta Intensidad Competitiva</span>
+                                    <span class="text-[11px] text-slate-400">Espacios reducidos, transiciones exigentes y ritmo alto de partido.</span>
+                                </div>
+                                <span class="font-mono font-extrabold text-amber-400 shrink-0">7-8</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-rose-950/30 border border-rose-500/25 flex items-center justify-between gap-3">
+                                <div>
+                                    <span class="font-bold text-rose-400 block">9 - 10 · Esfuerzo Máximo / Agotamiento</span>
+                                    <span class="text-[11px] text-slate-400">Picos físicos máximos o sesiones de doble exigencia física.</span>
+                                </div>
+                                <span class="font-mono font-extrabold text-rose-400 shrink-0">9-10</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preguntas Frecuentes (FAQ) -->
+                    <div class="glass-card p-5 rounded-2xl lg:col-span-7 space-y-4">
+                        <div>
+                            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i data-lucide="help-circle" class="w-4 h-4 text-amber-400"></i> Preguntas Frecuentes y Reglas Automáticas
+                            </h4>
+                            <p class="text-xs text-slate-400 mt-1">Pulsa sobre cualquier pregunta para desplegar la solución</p>
+                        </div>
+                        <div id="help-faq-list" class="space-y-2.5"></div>
                     </div>
                 </div>
             </section>
