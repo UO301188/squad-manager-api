@@ -5,7 +5,6 @@ import com.adriperez.squadmanager.model.Match;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// para la ficha individual de un partido
 public record MatchDetailResponseDTO(
         Long id,
         String opponent,
@@ -14,6 +13,7 @@ public record MatchDetailResponseDTO(
         Boolean homeMatch,
         Integer goalsFor,
         Integer goalsAgainst,
+        String formation,
         List<MatchAppearanceResponseDTO> appearances
 ) {
     public static MatchDetailResponseDTO fromEntity(Match match) {
@@ -28,6 +28,7 @@ public record MatchDetailResponseDTO(
                 match.getHomeMatch(),
                 match.getGoalsFor(),
                 match.getGoalsAgainst(),
+                match.getFormation() != null ? match.getFormation() : "4-3-3",
                 match.getMatchAppearances().stream().map(MatchAppearanceResponseDTO::fromEntity).toList()
         );
     }

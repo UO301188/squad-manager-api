@@ -76,6 +76,7 @@ const api = {
     addPlayerToMatch: (matchId, payload) => httpRequest(`/matches/${matchId}/appearances`, { method: 'POST', body: JSON.stringify(payload) }),
     updateMatchAppearance: (matchId, playerId, payload) => httpRequest(`/matches/${matchId}/appearances/${playerId}`, { method: 'PUT', body: JSON.stringify(payload) }),
     removePlayerFromMatch: (matchId, playerId) => httpRequest(`/matches/${matchId}/appearances/${playerId}`, { method: 'DELETE' }),
+    updateMatchLineup: (matchId, payload) => httpRequest(`/matches/${matchId}/lineup`, { method: 'PUT', body: JSON.stringify(payload) }),
 
     // Training Sessions & Attendances
     getTrainings: () => httpRequest('/trainings'),

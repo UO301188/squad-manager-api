@@ -16,11 +16,15 @@ import com.adriperez.squadmanager.security.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
 public class MatchService {
+
+    private static final Set<String> VALID_FORMATIONS = Set.of("4-3-3", "4-4-2", "4-2-3-1", "3-5-2");
 
     private final MatchRepository matchRepository;
     private final MatchAppearanceRepository matchAppearanceRepository;
@@ -48,6 +52,7 @@ public class MatchService {
         match.setMatchDate(dto.matchDate);
         match.setCompetition(dto.competition);
         match.setHomeMatch(dto.homeMatch);
+        match.setFormation("4-3-3");
 
         Match saved = matchRepository.save(match);
         return MatchSummaryResponseDTO.fromEntity(saved);
@@ -79,6 +84,69 @@ public class MatchService {
 
         Match saved = matchRepository.save(currentMatch);
         return MatchSummaryResponseDTO.fromEntity(saved);
+    }
+
+    @Transactional
+    public MatchDetailResponseDTO updateLineup(Long matchId, LineupRequestDTO dto) {
+        Long userId = currentUserService.getCurrentUser().getId();
+
+        if (!VALID_FORMATIONS.contains(dto.formation())) {
+            throw new BusinessRuleException("Sistema táctico no soportado: " + dto.formation());
+        }
+
+        Map<Integer, Long> slots = dto.slots();
+        if (slots.size() > 11) {
+            throw new BusinessRuleException("Un once inicial no puede superar los 11 jugadores");
+        }
+
+        for (Integer slot : slots.keySet()) {
+            if (slot == null || slot < 1 || slot > 11) {
+                throw new BusinessRuleException("Las posiciones tácticas deben estar numeradas del 1 al 11");
+            }
+        }
+
+        if (new HashSet<>(slots.values()).size() != slots.size()) {
+            throw new BusinessRuleException("No puedes colocar al mismo jugador en dos posiciones de la pizarra");
+        }
+
+        Match match = matchRepository.findByIdAndUserIdWithAppearances(matchId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Partido no encontrado con id: " + matchId));
+
+        Map<Long, MatchAppearance> appearancesByPlayer = match.getMatchAppearances()
+                .stream()
+                .collect(Collectors.toMap(a -> a.getPlayer().getId(), Function.identity()));
+
+        Map<Long, Integer> slotByPlayerId = new HashMap<>();
+        for (Map.Entry<Integer, Long> entry : slots.entrySet()) {
+            Long playerId = entry.getValue();
+            MatchAppearance appearance = appearancesByPlayer.get(playerId);
+            if (appearance == null) {
+                throw new BusinessRuleException("Todos los jugadores de la pizarra deben estar primero en la convocatoria");
+            }
+            if (appearance.getCallUpStatus() == CallUpStatus.NOT_CALLED
+                    && appearance.getPlayer().getPlayerStatus() != PlayerStatus.AVAILABLE) {
+                throw new BusinessRuleException("No se puede alinear a un jugador lesionado o sancionado");
+            }
+            slotByPlayerId.put(playerId, entry.getKey());
+        }
+
+        match.setFormation(dto.formation());
+
+        for (MatchAppearance appearance : match.getMatchAppearances()) {
+            Long pId = appearance.getPlayer().getId();
+            if (slotByPlayerId.containsKey(pId)) {
+                appearance.setCallUpStatus(CallUpStatus.STARTER);
+                appearance.setLineupSlot(slotByPlayerId.get(pId));
+            } else {
+                if (appearance.getCallUpStatus() == CallUpStatus.STARTER) {
+                    appearance.setCallUpStatus(CallUpStatus.SUBSTITUTE);
+                }
+                appearance.setLineupSlot(null);
+            }
+        }
+
+        Match saved = matchRepository.save(match);
+        return MatchDetailResponseDTO.fromEntity(saved);
     }
 
     @Transactional
@@ -150,6 +218,9 @@ public class MatchService {
         }
 
         appearance.setCallUpStatus(dto.callUpStatus);
+        if (dto.callUpStatus != CallUpStatus.STARTER) {
+            appearance.setLineupSlot(null);
+        }
         appearance.setMinutesPlayed(dto.minutesPlayed);
         appearance.setGoals(dto.goals);
         appearance.setAssists(dto.assists);

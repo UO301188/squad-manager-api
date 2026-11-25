@@ -24,6 +24,8 @@ public class Match {
     private Integer goalsFor;
     private Integer goalsAgainst;
 
+    private String formation = "4-3-3";
+
     @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MatchAppearance> matchAppearances = new ArrayList<>();
 
@@ -100,6 +102,14 @@ public class Match {
 
     public void setGoalsAgainst(Integer goalsAgainst) {
         this.goalsAgainst = goalsAgainst;
+    }
+
+    public String getFormation() {
+        return formation;
+    }
+
+    public void setFormation(String formation) {
+        this.formation = formation;
     }
 
     public List<MatchAppearance> getMatchAppearances() {

@@ -31,6 +31,16 @@ public class MatchAppearance {
     private boolean redCard;
     private Integer minutesPlayed;
 
+    private Integer lineupSlot;
+
+    public Integer getLineupSlot() {
+        return lineupSlot;
+    }
+
+    public void setLineupSlot(Integer lineupSlot) {
+        this.lineupSlot = lineupSlot;
+    }
+
     public MatchAppearance() {
     }
 
