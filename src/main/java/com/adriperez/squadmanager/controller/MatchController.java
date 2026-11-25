@@ -1,9 +1,12 @@
 package com.adriperez.squadmanager.controller;
 
 import com.adriperez.squadmanager.dto.*;
+import com.adriperez.squadmanager.service.CallUpPdfService;
 import com.adriperez.squadmanager.service.MatchService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,43 +17,47 @@ import java.util.List;
 public class MatchController {
 
     private final MatchService matchService;
+    private final CallUpPdfService callUpPdfService;
 
-    public MatchController(MatchService matchService) {
+    public MatchController(MatchService matchService, CallUpPdfService callUpPdfService) {
         this.matchService = matchService;
+        this.callUpPdfService = callUpPdfService;
     }
 
     @PostMapping
     public ResponseEntity<MatchSummaryResponseDTO> createMatch(@Valid @RequestBody MatchRequestDTO dto) {
-        MatchSummaryResponseDTO createdMatch = matchService.createMatch(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdMatch);
+        return ResponseEntity.status(HttpStatus.CREATED).body(matchService.createMatch(dto));
     }
 
     @GetMapping
     public ResponseEntity<List<MatchSummaryResponseDTO>> getAllMatches() {
-        List<MatchSummaryResponseDTO> matches = matchService.getAllMatches();
-        return ResponseEntity.ok(matches);
+        return ResponseEntity.ok(matchService.getAllMatches());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<MatchDetailResponseDTO> getMatchById(@PathVariable Long id) {
-        MatchDetailResponseDTO match = matchService.getMatchById(id);
-        return ResponseEntity.ok(match);
+        return ResponseEntity.ok(matchService.getMatchById(id));
     }
 
     @PatchMapping("/{id}/result")
     public ResponseEntity<MatchSummaryResponseDTO> updateMatchResult(
             @PathVariable Long id,
             @Valid @RequestBody MatchResultRequestDTO dto) {
-        MatchSummaryResponseDTO updatedMatch = matchService.updateMatchResult(id, dto);
-        return ResponseEntity.ok(updatedMatch);
+        return ResponseEntity.ok(matchService.updateMatchResult(id, dto));
+    }
+
+    @PutMapping("/{id}/lineup")
+    public ResponseEntity<MatchDetailResponseDTO> updateMatchLineup(
+            @PathVariable Long id,
+            @Valid @RequestBody LineupRequestDTO dto) {
+        return ResponseEntity.ok(matchService.updateLineup(id, dto));
     }
 
     @PostMapping("/{matchId}/appearances")
     public ResponseEntity<MatchAppearanceResponseDTO> addPlayerToMatch(
             @PathVariable Long matchId,
             @Valid @RequestBody CallUpRequestDTO dto) {
-        MatchAppearanceResponseDTO appearance = matchService.addPlayerToMatch(matchId, dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(appearance);
+        return ResponseEntity.status(HttpStatus.CREATED).body(matchService.addPlayerToMatch(matchId, dto));
     }
 
     @PutMapping("/{matchId}/appearances/{playerId}")
@@ -58,8 +65,7 @@ public class MatchController {
             @PathVariable Long matchId,
             @PathVariable Long playerId,
             @Valid @RequestBody MatchAppearanceStatsRequestDTO dto) {
-        MatchAppearanceResponseDTO updatedAppearance = matchService.updatePlayerAppearanceStats(matchId, playerId, dto);
-        return ResponseEntity.ok(updatedAppearance);
+        return ResponseEntity.ok(matchService.updatePlayerAppearanceStats(matchId, playerId, dto));
     }
 
     @DeleteMapping("/{matchId}/appearances/{playerId}")
@@ -70,10 +76,14 @@ public class MatchController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{id}/lineup")
-    public ResponseEntity<MatchDetailResponseDTO> updateMatchLineup(
-            @PathVariable Long id,
-            @Valid @RequestBody LineupRequestDTO dto) {
-        return ResponseEntity.ok(matchService.updateLineup(id, dto));
+    @GetMapping("/{id}/callup-pdf")
+    public ResponseEntity<byte[]> downloadCallUpPdf(@PathVariable Long id) {
+        byte[] pdfBytes = callUpPdfService.generateCallUpPdf(id);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"convocatoria-partido-" + id + ".pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
     }
 }

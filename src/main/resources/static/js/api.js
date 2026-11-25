@@ -77,6 +77,31 @@ const api = {
     updateMatchAppearance: (matchId, playerId, payload) => httpRequest(`/matches/${matchId}/appearances/${playerId}`, { method: 'PUT', body: JSON.stringify(payload) }),
     removePlayerFromMatch: (matchId, playerId) => httpRequest(`/matches/${matchId}/appearances/${playerId}`, { method: 'DELETE' }),
     updateMatchLineup: (matchId, payload) => httpRequest(`/matches/${matchId}/lineup`, { method: 'PUT', body: JSON.stringify(payload) }),
+    downloadMatchCallUpPdf: async (matchId) => {
+        const token = localStorage.getItem('squad_token');
+        const response = await fetch(`${API_BASE}/matches/${matchId}/callup-pdf`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+
+        if (!response.ok) {
+            let errMsg = 'No se pudo descargar el PDF';
+            try {
+                const errData = await response.json();
+                if (errData.message) errMsg = errData.message;
+            } catch (_) {}
+            throw new Error(errMsg);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `convocatoria-partido-${matchId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    },
 
     // Training Sessions & Attendances
     getTrainings: () => httpRequest('/trainings'),

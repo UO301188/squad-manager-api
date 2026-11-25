@@ -98,6 +98,13 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- Generación de PDF oficial de convocatorias -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>3.0.6</version>
+        </dependency>
     </dependencies>
 
     <build>
