@@ -102,6 +102,8 @@ const api = {
         link.remove();
         window.URL.revokeObjectURL(url);
     },
+    addMatchEvent: (matchId, payload) => httpRequest(`/matches/${matchId}/events`, { method: 'POST', body: JSON.stringify(payload) }),
+    deleteMatchEvent: (matchId, eventId) => httpRequest(`/matches/${matchId}/events/${eventId}`, { method: 'DELETE' }),
 
     // Training Sessions & Attendances
     getTrainings: () => httpRequest('/trainings'),

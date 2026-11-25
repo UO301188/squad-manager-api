@@ -3,13 +3,11 @@ package com.adriperez.squadmanager.service;
 import com.adriperez.squadmanager.dto.*;
 import com.adriperez.squadmanager.exception.BusinessRuleException;
 import com.adriperez.squadmanager.exception.ResourceNotFoundException;
-import com.adriperez.squadmanager.model.AppUser;
-import com.adriperez.squadmanager.model.Match;
-import com.adriperez.squadmanager.model.MatchAppearance;
-import com.adriperez.squadmanager.model.Player;
+import com.adriperez.squadmanager.model.*;
 import com.adriperez.squadmanager.model.enums.CallUpStatus;
 import com.adriperez.squadmanager.model.enums.PlayerStatus;
 import com.adriperez.squadmanager.repository.MatchAppearanceRepository;
+import com.adriperez.squadmanager.repository.MatchEventRepository;
 import com.adriperez.squadmanager.repository.MatchRepository;
 import com.adriperez.squadmanager.repository.PlayerRepository;
 import com.adriperez.squadmanager.security.CurrentUserService;
@@ -28,16 +26,19 @@ public class MatchService {
 
     private final MatchRepository matchRepository;
     private final MatchAppearanceRepository matchAppearanceRepository;
+    private final MatchEventRepository matchEventRepository;
     private final PlayerRepository playerRepository;
     private final CurrentUserService currentUserService;
 
     public MatchService(
             MatchRepository matchRepository,
             MatchAppearanceRepository matchAppearanceRepository,
+            MatchEventRepository matchEventRepository,
             PlayerRepository playerRepository,
             CurrentUserService currentUserService) {
         this.matchRepository = matchRepository;
         this.matchAppearanceRepository = matchAppearanceRepository;
+        this.matchEventRepository = matchEventRepository;
         this.playerRepository = playerRepository;
         this.currentUserService = currentUserService;
     }
@@ -70,7 +71,8 @@ public class MatchService {
         Long userId = currentUserService.getCurrentUser().getId();
         Match match = matchRepository.findByIdAndUserIdWithAppearances(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Partido no encontrado con id: " + id));
-        return MatchDetailResponseDTO.fromEntity(match);
+        List<MatchEvent> events = matchEventRepository.findByMatchIdWithPlayerOrderByMinuteAsc(id);
+        return MatchDetailResponseDTO.fromEntity(match, events);
     }
 
     @Transactional
@@ -146,10 +148,9 @@ public class MatchService {
         }
 
         Match saved = matchRepository.save(match);
-        return MatchDetailResponseDTO.fromEntity(saved);
+        List<MatchEvent> events = matchEventRepository.findByMatchIdWithPlayerOrderByMinuteAsc(matchId);
+        return MatchDetailResponseDTO.fromEntity(saved, events);
     }
-
-
 
     @Transactional
     public MatchAppearanceResponseDTO addPlayerToMatch(Long matchId, CallUpRequestDTO dto) {
@@ -215,8 +216,8 @@ public class MatchService {
             throw new BusinessRuleException("Un jugador no convocado no puede tener minutos jugados");
         }
 
-        if (dto.minutesPlayed == 0 && (dto.goals > 0 || dto.assists > 0 || dto.yellowCards > 0 || dto.redCard)) {
-            throw new BusinessRuleException("Un jugador con 0 minutos no puede registrar goles, asistencias ni tarjetas");
+        if (dto.minutesPlayed == 0 && (dto.goals > 0 || dto.assists > 0 || dto.yellowCards > 0 || dto.redCard || dto.rating != null)) {
+            throw new BusinessRuleException("Un jugador con 0 minutos no puede registrar goles, asistencias, tarjetas ni valoración");
         }
 
         if (dto.callUpStatus == CallUpStatus.STARTER && appearance.getCallUpStatus() != CallUpStatus.STARTER) {
@@ -238,10 +239,10 @@ public class MatchService {
         appearance.setAssists(dto.assists);
         appearance.setYellowCards(dto.yellowCards);
         appearance.setRedCard(dto.redCard);
+        appearance.setRating(dto.rating);
 
         MatchAppearance updatedAppearance = matchAppearanceRepository.save(appearance);
 
-        // Regla disciplinaria automática: Roja directa o cruce de ciclo de 5 amarillas
         long totalYellowsAfter = totalYellowsBefore - previousYellowsInMatch + dto.yellowCards;
         boolean crossedFiveYellowCycle = (totalYellowsAfter > totalYellowsBefore)
                 && ((totalYellowsAfter / 5) > (totalYellowsBefore / 5));
@@ -268,5 +269,44 @@ public class MatchService {
                         "El jugador " + playerId + " no está registrado en el partido " + matchId));
 
         matchAppearanceRepository.delete(appearance);
+    }
+
+    @Transactional
+    public MatchEventResponseDTO addMatchEvent(Long matchId, MatchEventRequestDTO dto) {
+        Long userId = currentUserService.getCurrentUser().getId();
+
+        Match match = matchRepository.findByIdAndUserId(matchId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Partido no encontrado con id: " + matchId));
+
+        Player player = playerRepository.findByIdAndUserId(dto.playerId(), userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + dto.playerId()));
+
+        if (!matchAppearanceRepository.existsByMatchIdAndPlayerId(matchId, dto.playerId())) {
+            throw new BusinessRuleException("El jugador debe estar en la convocatoria del partido para registrar un evento");
+        }
+
+        MatchEvent event = new MatchEvent();
+        event.setMatch(match);
+        event.setPlayer(player);
+        event.setEventType(dto.eventType());
+        event.setMinute(dto.minute());
+        event.setNotes(dto.notes() != null && !dto.notes().isBlank() ? dto.notes().trim() : null);
+
+        MatchEvent saved = matchEventRepository.save(event);
+        return MatchEventResponseDTO.fromEntity(saved);
+    }
+
+    @Transactional
+    public void deleteMatchEvent(Long matchId, Long eventId) {
+        Long userId = currentUserService.getCurrentUser().getId();
+
+        if (matchRepository.findByIdAndUserId(matchId, userId).isEmpty()) {
+            throw new ResourceNotFoundException("Partido no encontrado con id: " + matchId);
+        }
+
+        MatchEvent event = matchEventRepository.findByIdAndMatchId(eventId, matchId)
+                .orElseThrow(() -> new ResourceNotFoundException("Evento no encontrado con id: " + eventId));
+
+        matchEventRepository.delete(event);
     }
 }

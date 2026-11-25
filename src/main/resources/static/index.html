@@ -36,6 +36,9 @@
     <!-- Lucide Icons & Chart.js -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body class="bg-pitch-950 text-slate-100 font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
@@ -570,7 +573,7 @@
                     <h4 id="edit-app-title" class="text-xs font-bold uppercase tracking-wider text-emerald-400">Editar Acta Post-Partido</h4>
                     <button type="button" onclick="hideAppearanceEditor()" class="text-xs text-slate-400 hover:text-white">Cerrar</button>
                 </div>
-                <form id="form-appearance-stats" class="grid grid-cols-2 sm:grid-cols-7 gap-3 items-end">
+                <form id="form-appearance-stats" class="grid grid-cols-2 sm:grid-cols-8 gap-3 items-end">
                     <input type="hidden" id="edit-app-playerId">
                     <div class="col-span-2">
                         <label class="block text-[11px] text-slate-400 mb-1">Rol</label>
@@ -596,8 +599,12 @@
                         <label class="block text-[11px] text-slate-400 mb-1">Amarillas</label>
                         <input type="number" id="edit-app-yellows" min="0" max="2" required class="input-dark w-full px-2.5 py-1.5 rounded-lg text-xs font-mono">
                     </div>
+                    <div>
+                        <label class="block text-[11px] text-emerald-400 font-semibold mb-1">Nota (1-10)</label>
+                        <input type="number" id="edit-app-rating" min="1" max="10" step="0.1" placeholder="-" class="input-dark w-full px-2.5 py-1.5 rounded-lg text-xs font-mono border-emerald-500/40">
+                    </div>
                     <div class="flex items-center justify-between gap-2">
-                        <label class="inline-flex items-center gap-1.5 text-xs text-rose-400 cursor-pointer">
+                        <label class="inline-flex items-center gap-1 text-xs text-rose-400 cursor-pointer">
                             <input type="checkbox" id="edit-app-red" class="rounded bg-slate-800 border-slate-700 text-rose-500"> Roja
                         </label>
                         <button type="submit" class="btn-primary py-1.5 px-3 text-xs">OK</button>
@@ -613,7 +620,7 @@
                         <span id="md-starters-count" class="text-xs font-mono text-emerald-400">0 / 11 Titulares</span>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-pitch-900 border border-slate-800 text-[11px] text-slate-300 cursor-pointer select-none hover:border-slate-700" title="Activa esta opción para incluir quién es Titular o Suplente en el PDF y WhatsApp">
+                        <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-pitch-900 border border-slate-800 text-[11px] text-slate-300 cursor-pointer select-none hover:border-slate-700">
                             <input type="checkbox" id="export-include-roles" class="rounded bg-slate-800 border-slate-700 text-emerald-500">
                             <span>Incluir Titular/Suplente</span>
                         </label>
@@ -624,7 +631,6 @@
                             <i data-lucide="file-down" class="w-3.5 h-3.5"></i> PDF Oficial
                         </button>
                     </div>
-
                 </div>
                 <div class="border border-slate-800 rounded-xl overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs">
@@ -637,12 +643,47 @@
                             <th class="py-2.5 px-3 text-center">Goles</th>
                             <th class="py-2.5 px-3 text-center">Asist</th>
                             <th class="py-2.5 px-3 text-center">Tarjetas</th>
+                            <th class="py-2.5 px-3 text-center">Nota</th>
                             <th class="py-2.5 px-3 text-right">Acciones</th>
                         </tr>
                         </thead>
                         <tbody id="md-appearances-body" class="divide-y divide-slate-800/60"></tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- Cronología Minuto a Minuto -->
+            <div class="bg-pitch-900/90 border border-slate-800 rounded-2xl p-4 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i> Cronología del Partido (Minuto a Minuto)
+                    </h4>
+                </div>
+
+                <form id="form-match-event" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                    <div class="sm:col-span-2">
+                        <input type="number" id="event-minute" min="1" max="130" required placeholder="Min (ej. 34)" class="input-dark w-full px-3 py-2 rounded-xl text-xs font-mono">
+                    </div>
+                    <div class="sm:col-span-4">
+                        <select id="event-player-select" required class="input-dark w-full px-3 py-2 rounded-xl text-xs"></select>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <select id="event-type-select" required class="input-dark w-full px-3 py-2 rounded-xl text-xs">
+                            <option value="GOAL">⚽ Gol</option>
+                            <option value="YELLOW_CARD">🟨 Tarjeta Amarilla</option>
+                            <option value="RED_CARD">🟥 Tarjeta Roja</option>
+                            <option value="SUBSTITUTION">🔄 Cambio</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <input type="text" id="event-notes" placeholder="Detalle (ej. Asist. #8)" class="input-dark w-full px-3 py-2 rounded-xl text-xs">
+                    </div>
+                    <div class="sm:col-span-1">
+                        <button type="submit" class="btn-primary w-full py-2 justify-center text-xs">+</button>
+                    </div>
+                </form>
+
+                <div id="md-events-timeline" class="flex flex-wrap gap-2"></div>
             </div>
         </div>
 
@@ -687,11 +728,18 @@
                     <button type="button" onclick="saveTacticalLineup()" class="btn-primary w-full justify-center py-3 text-sm">
                         <i data-lucide="save" class="w-4 h-4"></i> Guardar Once Inicial y Pizarra
                     </button>
+
+                    <button type="button" onclick="exportLineupPosterPng()" class="btn-secondary w-full justify-center py-2.5 text-xs border-emerald-500/30 text-emerald-300">
+                        <i data-lucide="image-down" class="w-4 h-4 text-emerald-400"></i> Descargar Cartel Gráfico PNG (Stories / WhatsApp)
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Plantilla Oculta para Exportación de Cartel Gráfico PNG -->
+<div id="poster-render-sandbox" style="position: fixed; left: -9999px; top: 0; pointer-events: none;"></div>
 
 <!-- ==================== MODAL NUEVO ENTRENAMIENTO ==================== -->
 <div id="modal-training" class="modal-backdrop hidden">

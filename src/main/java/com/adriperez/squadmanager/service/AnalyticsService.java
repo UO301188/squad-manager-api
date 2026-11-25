@@ -113,6 +113,10 @@ public class AnalyticsService {
         long yellowCards = matchStats.yellowCards();
         boolean warnedByCards = yellowCards > 0 && (yellowCards % 5 == 4);
 
+        double averageRating = matchStats.averageRating() != null
+                ? roundTwoDecimals(matchStats.averageRating())
+                : 0.0;
+
         long totalSessions = trainingStats.totalSessions();
         long sessionsPresent = trainingStats.sessionsPresent();
 
@@ -147,6 +151,7 @@ public class AnalyticsService {
                 yellowCards,
                 matchStats.redCards(),
                 warnedByCards,
+                averageRating,
                 totalSessions,
                 sessionsPresent,
                 attendancePercentage,
@@ -155,7 +160,7 @@ public class AnalyticsService {
     }
 
     private PlayerMatchStatsDTO emptyMatchStats(Long playerId) {
-        return new PlayerMatchStatsDTO(playerId, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
+        return new PlayerMatchStatsDTO(playerId, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0.0);
     }
 
     private double roundTwoDecimals(double value) {
