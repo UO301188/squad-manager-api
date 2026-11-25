@@ -103,4 +103,9 @@ public class MatchController {
         matchService.deleteMatchEvent(matchId, eventId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/team-stats")
+    public ResponseEntity<TeamStatsResponseDTO> getTeamStats() {
+        return ResponseEntity.ok(matchService.getTeamStats());
+    }
 }
