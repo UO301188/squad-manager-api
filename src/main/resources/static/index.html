@@ -573,10 +573,21 @@
             </div>
 
             <!-- Tabla Convocados -->
+            <!-- Tabla Convocados -->
             <div>
-                <div class="flex items-center justify-between mb-2">
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Convocatoria y Estadísticas del Partido</h4>
-                    <span id="md-starters-count" class="text-xs font-mono text-emerald-400">0 / 11 Titulares</span>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                    <div class="flex items-center gap-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Convocatoria y Estadísticas</h4>
+                        <span id="md-starters-count" class="text-xs font-mono text-emerald-400">0 / 11 Titulares</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="copyCallUpToWhatsApp()" class="btn-secondary py-1.5 px-3 text-xs">
+                            <i data-lucide="share-2" class="w-3.5 h-3.5 text-emerald-400"></i> Copiar WhatsApp
+                        </button>
+                        <button type="button" onclick="exportCallUpPdf()" class="btn-primary py-1.5 px-3 text-xs">
+                            <i data-lucide="file-down" class="w-3.5 h-3.5"></i> PDF Oficial
+                        </button>
+                    </div>
                 </div>
                 <div class="border border-slate-800 rounded-xl overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs">

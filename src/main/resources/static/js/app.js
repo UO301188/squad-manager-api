@@ -932,6 +932,74 @@ async function saveTacticalLineup() {
     }
 }
 
+async function exportCallUpPdf() {
+    try {
+        await api.downloadMatchCallUpPdf(state.currentMatchId);
+        showToast('PDF de convocatoria descargado', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function copyCallUpToWhatsApp() {
+    const match = state.currentMatchData;
+    if (!match) return;
+
+    const calledUp = (match.appearances || []).filter(a => a.callUpStatus !== 'NOT_CALLED');
+    if (!calledUp.length) {
+        showToast('Añade al menos un jugador convocado antes de copiar', 'info');
+        return;
+    }
+
+    const user = JSON.parse(localStorage.getItem('squad_user') || '{}');
+    const clubName = user.clubName || 'Convocatoria Oficial';
+    const condition = match.homeMatch ? 'Local' : 'Visitante';
+
+    const groups = [
+        { key: 'GOALKEEPER', title: '🧤 Porteros' },
+        { key: 'DEFENDER',   title: '🛡️ Defensas' },
+        { key: 'MIDFIELDER', title: '⚙️ Centrocampistas' },
+        { key: 'FORWARD',    title: '⚽ Delanteros' }
+    ];
+
+    const lines = [
+        `📋 *CONVOCATORIA OFICIAL — ${clubName.toUpperCase()}*`,
+        `🏆 ${match.competition}`,
+        `🆚 *vs ${match.opponent}* (${condition})`,
+        `🗓️ ${formatDateTime(match.matchDate)}`,
+        ``
+    ];
+
+    groups.forEach(g => {
+        const list = calledUp
+            .filter(a => a.position === g.key)
+            .sort((a, b) => a.shirtNumber - b.shirtNumber);
+        if (list.length) {
+            lines.push(`*${g.title}*`);
+            list.forEach(p => {
+                lines.push(`• #${p.shirtNumber} ${p.playerFullName}`);
+            });
+            lines.push(``);
+        }
+    });
+
+    lines.push(`Total convocados: *${calledUp.length} jugadores*`);
+    const text = lines.join('\n');
+
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('Convocatoria copiada al portapapeles lista para WhatsApp', 'success');
+    } catch (_) {
+        const area = document.createElement('textarea');
+        area.value = text;
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        area.remove();
+        showToast('Convocatoria copiada al portapapeles', 'success');
+    }
+}
+
 // ==================== ENTRENAMIENTOS (TRAININGS) ====================
 async function loadTrainings() {
     try {
