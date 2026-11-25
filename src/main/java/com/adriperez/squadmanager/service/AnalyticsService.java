@@ -45,7 +45,7 @@ public class AnalyticsService {
                 .orElseThrow(() -> new ResourceNotFoundException("Jugador no encontrado con id: " + playerId));
 
         PlayerMatchStatsDTO matchStats = matchAppearanceRepository.getMatchStatsByPlayerId(playerId)
-                .orElse(new PlayerMatchStatsDTO(playerId, 0L, 0L, 0L, 0L, 0L, 0L, 0L));
+                .orElse(emptyMatchStats(playerId));
 
         PlayerTrainingStatsDTO trainingStats = trainingAttendanceRepository.getTrainingStatsByPlayerId(playerId)
                 .orElse(new PlayerTrainingStatsDTO(playerId, 0L, 0L, 0.0));
@@ -69,8 +69,7 @@ public class AnalyticsService {
         return players.stream()
                 .map(player -> {
                     Long id = player.getId();
-                    PlayerMatchStatsDTO matchStats = matchStatsByPlayer.getOrDefault(
-                            id, new PlayerMatchStatsDTO(id, 0L, 0L, 0L, 0L, 0L, 0L, 0L));
+                    PlayerMatchStatsDTO matchStats = matchStatsByPlayer.getOrDefault(id, emptyMatchStats(id));
                     PlayerTrainingStatsDTO trainingStats = trainingStatsByPlayer.getOrDefault(
                             id, new PlayerTrainingStatsDTO(id, 0L, 0L, 0.0));
                     return buildStatsResponse(player, matchStats, trainingStats);
@@ -84,14 +83,35 @@ public class AnalyticsService {
             PlayerMatchStatsDTO matchStats,
             PlayerTrainingStatsDTO trainingStats) {
 
+        long matchesPlayed = matchStats.matchesPlayed();
         long totalMinutes = matchStats.totalMinutes();
         long totalGoals = matchStats.totalGoals();
         long totalAssists = matchStats.totalAssists();
         long goalContributions = totalGoals + totalAssists;
 
+        double avgMinutesPerMatch = matchesPlayed > 0
+                ? roundTwoDecimals((double) totalMinutes / matchesPlayed)
+                : 0.0;
+
         double goalsPer90 = totalMinutes > 0
                 ? roundTwoDecimals((totalGoals * 90.0) / totalMinutes)
                 : 0.0;
+
+        double assistsPer90 = totalMinutes > 0
+                ? roundTwoDecimals((totalAssists * 90.0) / totalMinutes)
+                : 0.0;
+
+        double goalContributionsPer90 = totalMinutes > 0
+                ? roundTwoDecimals((goalContributions * 90.0) / totalMinutes)
+                : 0.0;
+
+        long matchesFinishedPlayed = matchStats.matchesFinishedPlayed();
+        double winRatePercentage = matchesFinishedPlayed > 0
+                ? roundTwoDecimals((matchStats.matchesWon() * 100.0) / matchesFinishedPlayed)
+                : 0.0;
+
+        long yellowCards = matchStats.yellowCards();
+        boolean warnedByCards = yellowCards > 0 && (yellowCards % 5 == 4);
 
         long totalSessions = trainingStats.totalSessions();
         long sessionsPresent = trainingStats.sessionsPresent();
@@ -111,19 +131,31 @@ public class AnalyticsService {
                 player.getPosition(),
                 player.getPlayerStatus(),
                 matchStats.matchesCalledUp(),
-                matchStats.matchesPlayed(),
+                matchesPlayed,
+                matchStats.starts(),
+                matchStats.subAppearances(),
                 totalMinutes,
+                avgMinutesPerMatch,
                 totalGoals,
                 totalAssists,
                 goalContributions,
                 goalsPer90,
-                matchStats.yellowCards(),
+                assistsPer90,
+                goalContributionsPer90,
+                matchStats.cleanSheets(),
+                winRatePercentage,
+                yellowCards,
                 matchStats.redCards(),
+                warnedByCards,
                 totalSessions,
                 sessionsPresent,
                 attendancePercentage,
                 averageRpe
         );
+    }
+
+    private PlayerMatchStatsDTO emptyMatchStats(Long playerId) {
+        return new PlayerMatchStatsDTO(playerId, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
     }
 
     private double roundTwoDecimals(double value) {
