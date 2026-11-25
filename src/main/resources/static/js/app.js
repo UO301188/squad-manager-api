@@ -220,6 +220,9 @@ function setupEventListeners() {
     // Filtros analítica
     document.getElementById('analytics-pos-filter').addEventListener('change', renderAnalyticsTable);
     document.getElementById('analytics-sort-select').addEventListener('change', renderAnalyticsTable);
+
+    document.getElementById('compare-player-a').addEventListener('change', renderPlayerComparison);
+    document.getElementById('compare-player-b').addEventListener('change', renderPlayerComparison);
 }
 
 // ==================== DASHBOARD ====================
@@ -898,10 +901,122 @@ async function handleAttendanceSubmit(e) {
 async function loadAnalytics() {
     try {
         state.analyticsData = await api.getAllPlayersStats();
+        populateComparisonSelectors();
+        renderPlayerComparison();
         renderAnalyticsTable();
     } catch (err) {
         showToast(err.message, 'error');
     }
+}
+
+function populateComparisonSelectors() {
+    const selA = document.getElementById('compare-player-a');
+    const selB = document.getElementById('compare-player-b');
+    if (!state.analyticsData.length) return;
+
+    const optionsHtml = state.analyticsData.map(p =>
+        `<option value="${p.playerId}">#${p.shirtNumber} ${p.fullName} (${POSITION_META[p.position]?.short})</option>`
+    ).join('');
+
+    selA.innerHTML = optionsHtml;
+    selB.innerHTML = optionsHtml;
+
+    if (state.analyticsData.length > 1) {
+        selB.selectedIndex = 1;
+    }
+}
+
+function renderPlayerComparison() {
+    const idA = parseInt(document.getElementById('compare-player-a').value, 10);
+    const idB = parseInt(document.getElementById('compare-player-b').value, 10);
+    const pA = state.analyticsData.find(p => p.playerId === idA);
+    const pB = state.analyticsData.find(p => p.playerId === idB);
+    if (!pA || !pB) return;
+
+    const maxMinutes = Math.max(...state.analyticsData.map(p => p.totalMinutes), 90);
+    const maxContrib90 = Math.max(...state.analyticsData.map(p => p.goalContributionsPer90), 1.5);
+    const maxCleanSheets = Math.max(...state.analyticsData.map(p => p.cleanSheets), 1);
+
+    const normalize = (val, max) => max > 0 ? Math.min(Math.round((val / max) * 100), 100) : 0;
+
+    const ctx = document.getElementById('chart-player-radar').getContext('2d');
+    if (state.charts.radar) state.charts.radar.destroy();
+
+    state.charts.radar = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Minutos', 'G+A / 90\'', '% Victorias', 'Porterías a 0', 'Asist. Entreno', 'Carga RPE'],
+            datasets: [
+                {
+                    label: `#${pA.shirtNumber} ${pA.fullName}`,
+                    data: [
+                        normalize(pA.totalMinutes, maxMinutes),
+                        normalize(pA.goalContributionsPer90, maxContrib90),
+                        pA.winRatePercentage,
+                        normalize(pA.cleanSheets, maxCleanSheets),
+                        pA.attendancePercentage,
+                        pA.averageRpe * 10
+                    ],
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    borderColor: '#10b981',
+                    pointBackgroundColor: '#10b981',
+                    borderWidth: 2
+                },
+                {
+                    label: `#${pB.shirtNumber} ${pB.fullName}`,
+                    data: [
+                        normalize(pB.totalMinutes, maxMinutes),
+                        normalize(pB.goalContributionsPer90, maxContrib90),
+                        pB.winRatePercentage,
+                        normalize(pB.cleanSheets, maxCleanSheets),
+                        pB.attendancePercentage,
+                        pB.averageRpe * 10
+                    ],
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: '#3b82f6',
+                    pointBackgroundColor: '#3b82f6',
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    min: 0,
+                    max: 100,
+                    ticks: { display: false },
+                    grid: { color: 'rgba(148, 163, 184, 0.12)' },
+                    angleLines: { color: 'rgba(148, 163, 184, 0.12)' },
+                    pointLabels: { color: '#cbd5e1', font: { size: 11, weight: '600' } }
+                }
+            },
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#e2e8f0', font: { size: 11 } } }
+            }
+        }
+    });
+
+    const metrics = [
+        { label: 'Minutos Totales', valA: `${pA.totalMinutes}'`, valB: `${pB.totalMinutes}'`, numA: pA.totalMinutes, numB: pB.totalMinutes },
+        { label: 'Media Min / PJ', valA: `${pA.avgMinutesPerMatch.toFixed(0)}'`, valB: `${pB.avgMinutesPerMatch.toFixed(0)}'`, numA: pA.avgMinutesPerMatch, numB: pB.avgMinutesPerMatch },
+        { label: 'Goles + Asist.', valA: `${pA.totalGoals}G · ${pA.totalAssists}A`, valB: `${pB.totalGoals}G · ${pB.totalAssists}A`, numA: pA.goalContributions, numB: pB.goalContributions },
+        { label: 'G+A cada 90\'', valA: pA.goalContributionsPer90.toFixed(2), valB: pB.goalContributionsPer90.toFixed(2), numA: pA.goalContributionsPer90, numB: pB.goalContributionsPer90 },
+        { label: '% Victorias', valA: `${pA.winRatePercentage.toFixed(0)}%`, valB: `${pB.winRatePercentage.toFixed(0)}%`, numA: pA.winRatePercentage, numB: pB.winRatePercentage },
+        { label: 'Asistencia / RPE', valA: `${pA.attendancePercentage.toFixed(0)}% (${pA.averageRpe.toFixed(1)})`, valB: `${pB.attendancePercentage.toFixed(0)}% (${pB.averageRpe.toFixed(1)})`, numA: pA.attendancePercentage, numB: pB.attendancePercentage }
+    ];
+
+    document.getElementById('compare-metrics-grid').innerHTML = metrics.map(m => `
+        <div class="bg-pitch-900/90 border border-slate-800 rounded-xl p-3">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400 block mb-2">${m.label}</span>
+            <div class="flex items-center justify-between font-mono text-xs">
+                <span class="${m.numA >= m.numB ? 'text-emerald-400 font-bold' : 'text-slate-400'}">${m.valA}</span>
+                <span class="text-slate-600">|</span>
+                <span class="${m.numB >= m.numA ? 'text-blue-400 font-bold' : 'text-slate-400'}">${m.valB}</span>
+            </div>
+        </div>
+    `).join('');
 }
 
 function renderAnalyticsTable() {
@@ -920,34 +1035,43 @@ function renderAnalyticsTable() {
 
     tbody.innerHTML = rows.map(p => {
         const pos = POSITION_META[p.position] || { short: p.position, badge: 'bg-slate-800 text-slate-300' };
-        const st = STATUS_META[p.playerStatus] || { label: p.playerStatus, badge: 'bg-slate-800 text-slate-300' };
+        const warnedBadge = p.warnedByCards
+            ? `<span class="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/40" title="A 1 tarjeta amarilla de sanción">APERCIBIDO</span>`
+            : '';
 
         return `
             <tr class="hover:bg-slate-800/35 transition-colors">
-                <td class="py-3 px-4 font-mono font-bold text-emerald-400">#${p.shirtNumber}</td>
-                <td class="py-3 px-4">
-                    <div class="font-semibold text-white">${p.fullName}</div>
+                <td class="py-3 px-3 font-mono font-bold text-emerald-400">#${p.shirtNumber}</td>
+                <td class="py-3 px-3">
+                    <div class="font-semibold text-white flex items-center flex-wrap">${p.fullName}${warnedBadge}</div>
                     <span class="text-[10px] font-semibold px-1.5 py-0.2 rounded border ${pos.badge}">${pos.short}</span>
                 </td>
-                <td class="py-3 px-4"><span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border ${st.badge}">${st.label}</span></td>
-                <td class="py-3 px-4 text-center font-mono text-slate-300">${p.matchesPlayed} / ${p.matchesCalledUp}</td>
-                <td class="py-3 px-4 text-right font-mono font-bold text-white">${p.totalMinutes}'</td>
-                <td class="py-3 px-4 text-center font-mono font-bold text-emerald-400">${p.totalGoals}</td>
-                <td class="py-3 px-4 text-center font-mono text-blue-400">${p.totalAssists}</td>
-                <td class="py-3 px-4 text-center font-mono text-slate-300">${p.goalsPer90.toFixed(2)}</td>
-                <td class="py-3 px-4 text-center font-mono text-xs">
-                    <span class="text-amber-400">${p.yellowCards}A</span> / <span class="text-rose-400">${p.redCards}R</span>
+                <td class="py-3 px-3 text-center font-mono text-slate-300">
+                    <span class="font-bold text-white">${p.matchesPlayed}</span> <span class="text-slate-500">(${p.starts}/${p.subAppearances})</span>
                 </td>
-                <td class="py-3 px-4">
+                <td class="py-3 px-3 text-right font-mono">
+                    <span class="font-bold text-white">${p.totalMinutes}'</span>
+                    <span class="block text-[10px] text-slate-400">${p.avgMinutesPerMatch.toFixed(0)}'/pj</span>
+                </td>
+                <td class="py-3 px-3 text-center font-mono">
+                    <span class="font-bold text-emerald-400">${p.totalGoals}</span> / <span class="font-bold text-blue-400">${p.totalAssists}</span>
+                </td>
+                <td class="py-3 px-3 text-center font-mono font-semibold text-amber-300">${p.goalContributionsPer90.toFixed(2)}</td>
+                <td class="py-3 px-3 text-center font-mono text-slate-300">${p.cleanSheets}</td>
+                <td class="py-3 px-3 text-center font-mono text-slate-300">${p.winRatePercentage.toFixed(0)}%</td>
+                <td class="py-3 px-3 text-center font-mono">
+                    <span class="text-amber-400">${p.yellowCards}A</span> · <span class="text-rose-400">${p.redCards}R</span>
+                </td>
+                <td class="py-3 px-3">
                     <div class="flex items-center gap-2">
-                        <div class="w-20 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                             <div class="h-full bg-emerald-400 rounded-full" style="width: ${Math.min(p.attendancePercentage, 100)}%"></div>
                         </div>
-                        <span class="font-mono text-xs text-slate-300">${p.attendancePercentage.toFixed(0)}%</span>
+                        <span class="font-mono text-slate-300">${p.attendancePercentage.toFixed(0)}%</span>
                     </div>
                 </td>
-                <td class="py-3 px-4 text-center font-mono font-semibold text-purple-300">${p.averageRpe.toFixed(1)}</td>
-                <td class="py-3 px-4 text-right">
+                <td class="py-3 px-3 text-center font-mono font-semibold text-purple-300">${p.averageRpe.toFixed(1)}</td>
+                <td class="py-3 px-3 text-right">
                     <button onclick="openPlayerStatsModal(${p.playerId})" class="text-xs text-emerald-400 hover:underline font-medium">Ficha</button>
                 </td>
             </tr>
@@ -963,10 +1087,13 @@ async function openPlayerStatsModal(playerId) {
         document.getElementById('ps-meta').textContent = `${POSITION_META[s.position]?.label || s.position} · ${STATUS_META[s.playerStatus]?.label || s.playerStatus}`;
 
         const cards = [
-            { label: 'Partidos Jugados', val: `${s.matchesPlayed} / ${s.matchesCalledUp}`, color: 'text-white' },
-            { label: 'Minutos Totales', val: `${s.totalMinutes}'`, color: 'text-emerald-400' },
+            { label: 'Partidos (Tit / Sup)', val: `${s.matchesPlayed} (${s.starts}T / ${s.subAppearances}S)`, color: 'text-white' },
+            { label: 'Minutos (Media/PJ)', val: `${s.totalMinutes}' (${s.avgMinutesPerMatch.toFixed(0)}')`, color: 'text-emerald-400' },
             { label: 'Goles / Asist.', val: `${s.totalGoals}G · ${s.totalAssists}A`, color: 'text-blue-400' },
-            { label: 'Goles cada 90\'', val: s.goalsPer90.toFixed(2), color: 'text-amber-400' },
+            { label: 'G+A cada 90\'', val: `${s.goalContributionsPer90.toFixed(2)} (${s.goalsPer90.toFixed(2)}G)`, color: 'text-amber-400' },
+            { label: 'Porterías a Cero', val: `${s.cleanSheets}`, color: 'text-teal-400' },
+            { label: '% Victorias Jugando', val: `${s.winRatePercentage.toFixed(1)}%`, color: 'text-emerald-400' },
+            { label: 'Tarjetas (Ciclo)', val: `${s.yellowCards}A · ${s.redCards}R${s.warnedByCards ? ' (Apercibido)' : ''}`, color: s.warnedByCards ? 'text-amber-400' : 'text-slate-300' },
             { label: 'Asistencia Entrenos', val: `${s.attendancePercentage.toFixed(1)}% (${s.sessionsPresent}/${s.totalSessions})`, color: 'text-emerald-400' },
             { label: 'RPE Medio Carga', val: `${s.averageRpe.toFixed(1)} / 10`, color: 'text-purple-400' }
         ];
@@ -974,7 +1101,7 @@ async function openPlayerStatsModal(playerId) {
         document.getElementById('ps-content').innerHTML = cards.map(c => `
             <div class="bg-pitch-900 border border-slate-800 rounded-xl p-3.5">
                 <span class="text-[11px] text-slate-400 block mb-1">${c.label}</span>
-                <span class="font-mono font-bold text-base ${c.color}">${c.val}</span>
+                <span class="font-mono font-bold text-sm ${c.color}">${c.val}</span>
             </div>
         `).join('');
 

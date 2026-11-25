@@ -292,7 +292,32 @@
             </section>
 
             <!-- ==================== VISTA 5: ANALÍTICA ==================== -->
-            <section id="view-analytics" class="hidden space-y-5">
+            <section id="view-analytics" class="hidden space-y-6">
+                <!-- Comparador Cara a Cara (Scouting Radar) -->
+                <div class="glass-card p-5 rounded-2xl">
+                    <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i data-lucide="radar" class="w-4 h-4 text-emerald-400"></i> Comparador de Rendimiento (Cara a Cara)
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Contrasta métricas normalizadas de competición y carga física entre dos jugadores</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <select id="compare-player-a" class="input-dark text-xs py-2 px-3 rounded-xl border-emerald-500/40"></select>
+                            <span class="text-xs font-mono font-bold text-slate-500">VS</span>
+                            <select id="compare-player-b" class="input-dark text-xs py-2 px-3 rounded-xl border-blue-500/40"></select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-5 items-center">
+                        <div class="lg:col-span-5 h-72 flex items-center justify-center">
+                            <canvas id="chart-player-radar"></canvas>
+                        </div>
+                        <div id="compare-metrics-grid" class="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+                    </div>
+                </div>
+
+                <!-- Filtros Tabla General -->
                 <div class="glass-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
                         <label class="text-xs text-slate-400 font-medium">Posición:</label>
@@ -309,35 +334,38 @@
                         <label class="text-xs text-slate-400 font-medium">Ordenar por:</label>
                         <select id="analytics-sort-select" class="input-dark text-xs py-2 px-3 rounded-xl">
                             <option value="totalMinutes">Minutos jugados</option>
+                            <option value="avgMinutesPerMatch">Media min / partido</option>
                             <option value="totalGoals">Goles totales</option>
-                            <option value="goalContributions">Goles + Asistencias</option>
-                            <option value="goalsPer90">Goles / 90 min</option>
+                            <option value="goalContributionsPer90">G + A cada 90'</option>
+                            <option value="cleanSheets">Porterías a cero</option>
+                            <option value="winRatePercentage">% Victorias</option>
                             <option value="attendancePercentage">% Asistencia entrenos</option>
                             <option value="averageRpe">RPE Medio</option>
                         </select>
                     </div>
                 </div>
 
+                <!-- Tabla Detallada -->
                 <div class="glass-card rounded-2xl overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead>
-                            <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 bg-pitch-900/70">
-                                <th class="py-3.5 px-4">Dorsal</th>
-                                <th class="py-3.5 px-4">Jugador</th>
-                                <th class="py-3.5 px-4">Estado</th>
-                                <th class="py-3.5 px-4 text-center">PJ / Conv</th>
-                                <th class="py-3.5 px-4 text-right">Minutos</th>
-                                <th class="py-3.5 px-4 text-center">G</th>
-                                <th class="py-3.5 px-4 text-center">A</th>
-                                <th class="py-3.5 px-4 text-center">G/90</th>
-                                <th class="py-3.5 px-4 text-center">Tarjetas</th>
-                                <th class="py-3.5 px-4">Asistencia Entrenos</th>
-                                <th class="py-3.5 px-4 text-center">RPE</th>
-                                <th class="py-3.5 px-4 text-right">Detalle</th>
+                            <tr class="border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-400 bg-pitch-900/70">
+                                <th class="py-3.5 px-3">#</th>
+                                <th class="py-3.5 px-3">Jugador</th>
+                                <th class="py-3.5 px-3 text-center">PJ (Tit/Sup)</th>
+                                <th class="py-3.5 px-3 text-right">Min (Media)</th>
+                                <th class="py-3.5 px-3 text-center">G / A</th>
+                                <th class="py-3.5 px-3 text-center">G+A / 90'</th>
+                                <th class="py-3.5 px-3 text-center">P. Cero</th>
+                                <th class="py-3.5 px-3 text-center">% Vict.</th>
+                                <th class="py-3.5 px-3 text-center">Tarjetas</th>
+                                <th class="py-3.5 px-3">Entrenos</th>
+                                <th class="py-3.5 px-3 text-center">RPE</th>
+                                <th class="py-3.5 px-3 text-right">Ficha</th>
                             </tr>
                             </thead>
-                            <tbody id="analytics-table-body" class="divide-y divide-slate-800/60 text-sm"></tbody>
+                            <tbody id="analytics-table-body" class="divide-y divide-slate-800/60 text-xs"></tbody>
                         </table>
                     </div>
                 </div>
