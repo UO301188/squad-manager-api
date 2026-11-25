@@ -1779,16 +1779,22 @@ async function exportLineupPosterPng() {
         const pId = state.tacticalSlots[n.slot];
         const app = appearances.find(a => a.playerId === pId);
         const dorsal = app ? app.shirtNumber : '?';
-        const surname = app
-            ? (app.playerFullName.split(' ').slice(1).join(' ') || app.playerFullName)
-            : n.role;
+
+        let surname = n.role;
+        if (app && app.playerFullName) {
+            const parts = app.playerFullName.trim().split(/\s+/);
+            surname = parts.length > 1 ? parts.slice(1).join(' ') : parts[0];
+            if (surname.length > 18 && parts.length > 2) {
+                surname = parts.slice(-2).join(' ');
+            }
+        }
 
         return `
-            <div style="position:absolute; left:${n.x}%; top:${n.y}%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center;">
-                <div style="width:42px; height:42px; border-radius:9999px; background:#090d16; border:2.5px solid #34d399; color:#34d399; font-family:monospace; font-weight:800; font-size:16px; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 14px rgba(0,0,0,0.65);">
+            <div style="position:absolute; left:${n.x}%; top:${n.y}%; transform:translate(-50%,-50%); text-align:center; width:126px;">
+                <div style="width:42px; height:42px; margin:0 auto; border-radius:9999px; background:#090d16; border:2.5px solid #34d399; color:#34d399; font-family:'JetBrains Mono', monospace; font-weight:800; font-size:16px; line-height:37px; text-align:center; box-sizing:border-box; box-shadow:0 6px 14px rgba(0,0,0,0.65);">
                     ${dorsal}
                 </div>
-                <div style="margin-top:4px; padding:2px 8px; border-radius:6px; background:rgba(9,13,22,0.92); border:1px solid rgba(148,163,184,0.25); color:#ffffff; font-size:11px; font-weight:700; white-space:nowrap;">
+                <div style="display:inline-block; max-width:122px; margin-top:4px; padding:3px 8px 5px 8px; border-radius:6px; background:rgba(9,13,22,0.92); border:1px solid rgba(148,163,184,0.25); color:#ffffff; font-family:Inter, sans-serif; font-size:10.5px; font-weight:700; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-sizing:border-box;">
                     ${surname}
                 </div>
             </div>
@@ -1801,20 +1807,20 @@ async function exportLineupPosterPng() {
 
     const sandbox = document.getElementById('poster-render-sandbox');
     sandbox.innerHTML = `
-        <div id="matchday-poster-card" style="width:540px; padding:28px; background:linear-gradient(160deg, #070b14 0%, #0f172a 55%, #064e3b 100%); color:#ffffff; font-family:Inter, sans-serif; border:2px solid #1e293b;">
+        <div id="matchday-poster-card" style="width:540px; padding:28px; background:linear-gradient(160deg, #070b14 0%, #0f172a 55%, #064e3b 100%); color:#ffffff; font-family:Inter, sans-serif; border:2px solid #1e293b; box-sizing:border-box;">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.12); padding-bottom:14px; margin-bottom:16px;">
                 <div>
-                    <div style="font-size:10px; font-weight:800; letter-spacing:2px; color:#34d399; text-transform:uppercase;">ONCE INICIAL · ${match.competition}</div>
-                    <div style="font-size:22px; font-weight:900; letter-spacing:-0.5px; margin-top:2px;">${clubName}</div>
+                    <div style="font-size:10px; font-weight:800; letter-spacing:2px; color:#34d399; text-transform:uppercase; line-height:1.2;">ONCE INICIAL · ${match.competition}</div>
+                    <div style="font-size:22px; font-weight:900; letter-spacing:-0.5px; margin-top:4px; line-height:1.1;">${clubName}</div>
                 </div>
-                <div style="padding:6px 12px; border-radius:10px; background:rgba(16,185,129,0.18); border:1px solid rgba(52,211,153,0.4); font-family:monospace; font-weight:800; font-size:15px; color:#34d399;">
+                <div style="height:34px; padding:0 14px; border-radius:10px; background:rgba(16,185,129,0.18); border:1px solid rgba(52,211,153,0.4); font-family:'JetBrains Mono', monospace; font-weight:800; font-size:15px; line-height:32px; text-align:center; color:#34d399; box-sizing:border-box;">
                     ${state.tacticalFormation}
                 </div>
             </div>
 
-            <div style="background:rgba(15,23,42,0.75); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px 14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-size:14px; font-weight:800;">VS ${match.opponent.toUpperCase()} <span style="font-size:11px; color:#94a3b8; font-weight:600;">(${condition})</span></div>
-                <div style="font-size:11px; color:#cbd5e1;">${formatDateTime(match.matchDate)}</div>
+            <div style="background:rgba(15,23,42,0.75); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:9px 14px 11px 14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:14px; font-weight:800; line-height:1.2;">VS ${match.opponent.toUpperCase()} <span style="font-size:11px; color:#94a3b8; font-weight:600;">(${condition})</span></div>
+                <div style="font-size:11px; color:#cbd5e1; line-height:1.2;">${formatDateTime(match.matchDate)}</div>
             </div>
 
             <div style="position:relative; width:100%; height:440px; border-radius:16px; border:2px solid rgba(255,255,255,0.35); background:repeating-linear-gradient(0deg, #064e3b 0%, #064e3b 10%, #065f46 10%, #065f46 20%); overflow:hidden;">
@@ -1825,9 +1831,9 @@ async function exportLineupPosterPng() {
                 ${nodesHtml}
             </div>
 
-            <div style="margin-top:14px; padding:10px 14px; border-radius:12px; background:rgba(9,13,22,0.85); border:1px solid rgba(255,255,255,0.08);">
-                <div style="font-size:10px; font-weight:800; color:#94a3b8; letter-spacing:1px; margin-bottom:4px;">BANQUILLO</div>
-                <div style="font-size:11px; color:#e2e8f0; line-height:1.5;">${benchText}</div>
+            <div style="margin-top:14px; padding:9px 14px 11px 14px; border-radius:12px; background:rgba(9,13,22,0.85); border:1px solid rgba(255,255,255,0.08);">
+                <div style="font-size:10px; font-weight:800; color:#94a3b8; letter-spacing:1px; margin-bottom:4px; line-height:1.2;">BANQUILLO</div>
+                <div style="font-size:11px; color:#e2e8f0; line-height:1.45;">${benchText}</div>
             </div>
         </div>
     `;
