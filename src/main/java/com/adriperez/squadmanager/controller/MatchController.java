@@ -77,12 +77,14 @@ public class MatchController {
     }
 
     @GetMapping("/{id}/callup-pdf")
-    public ResponseEntity<byte[]> downloadCallUpPdf(@PathVariable Long id) {
-        byte[] pdfBytes = callUpPdfService.generateCallUpPdf(id);
+    public ResponseEntity<byte[]> downloadCallUpPdf(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "false") boolean includeRoles) {
+        byte[] pdfBytes = callUpPdfService.generateCallUpPdf(id, includeRoles);
+        String fileName = (includeRoles ? "convocatoria-alineacion-" : "convocatoria-previa-") + id + ".pdf";
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"convocatoria-partido-" + id + ".pdf\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }
