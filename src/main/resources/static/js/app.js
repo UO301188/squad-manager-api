@@ -15,7 +15,12 @@ const state = {
     charts: {
         contributions: null,
         status: null
-    }
+    },
+
+    currentMatchData: null,
+    tacticalFormation: '4-3-3',
+    tacticalSlots: {},
+    selectedPitchSlot: 1
 };
 
 // Diccionarios de traducción y estilos visuales
@@ -595,6 +600,16 @@ async function openMatchDetail(matchId) {
             api.getPlayers()
         ]);
 
+        state.currentMatchData = match;
+        state.tacticalFormation = match.formation || '4-3-3';
+        state.tacticalSlots = {};
+        (match.appearances || []).forEach(a => {
+            if (a.lineupSlot && a.lineupSlot >= 1 && a.lineupSlot <= 11) {
+                state.tacticalSlots[a.lineupSlot] = a.playerId;
+            }
+        });
+        switchMatchTab('callup');
+
         document.getElementById('md-competition').textContent = `${match.competition} · ${match.homeMatch ? 'LOCAL' : 'VISITANTE'}`;
         document.getElementById('md-title').textContent = `vs ${match.opponent}`;
         document.getElementById('md-date').textContent = formatDateTime(match.matchDate);
@@ -720,6 +735,198 @@ async function removeAppearance(playerId) {
         await api.removePlayerFromMatch(state.currentMatchId, playerId);
         showToast('Jugador retirado de la convocatoria', 'info');
         openMatchDetail(state.currentMatchId);
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+// ==================== PIZARRA TÁCTICA (11 INICIAL) ====================
+const FORMATIONS_MAP = {
+    '4-3-3': [
+        { slot: 1, role: 'POR', x: 50, y: 90 },
+        { slot: 2, role: 'LD',  x: 84, y: 72 },
+        { slot: 3, role: 'DFC', x: 63, y: 75 },
+        { slot: 4, role: 'DFC', x: 37, y: 75 },
+        { slot: 5, role: 'LI',  x: 16, y: 72 },
+        { slot: 6, role: 'MCD', x: 50, y: 55 },
+        { slot: 7, role: 'MC',  x: 72, y: 46 },
+        { slot: 8, role: 'MC',  x: 28, y: 46 },
+        { slot: 9, role: 'ED',  x: 80, y: 24 },
+        { slot: 10, role: 'DC', x: 50, y: 17 },
+        { slot: 11, role: 'EI', x: 20, y: 24 }
+    ],
+    '4-4-2': [
+        { slot: 1, role: 'POR', x: 50, y: 90 },
+        { slot: 2, role: 'LD',  x: 84, y: 72 },
+        { slot: 3, role: 'DFC', x: 63, y: 75 },
+        { slot: 4, role: 'DFC', x: 37, y: 75 },
+        { slot: 5, role: 'LI',  x: 16, y: 72 },
+        { slot: 6, role: 'MD',  x: 82, y: 46 },
+        { slot: 7, role: 'MC',  x: 62, y: 49 },
+        { slot: 8, role: 'MC',  x: 38, y: 49 },
+        { slot: 9, role: 'MI',  x: 18, y: 46 },
+        { slot: 10, role: 'DC', x: 62, y: 20 },
+        { slot: 11, role: 'DC', x: 38, y: 20 }
+    ],
+    '4-2-3-1': [
+        { slot: 1, role: 'POR', x: 50, y: 90 },
+        { slot: 2, role: 'LD',  x: 84, y: 73 },
+        { slot: 3, role: 'DFC', x: 63, y: 76 },
+        { slot: 4, role: 'DFC', x: 37, y: 76 },
+        { slot: 5, role: 'LI',  x: 16, y: 73 },
+        { slot: 6, role: 'MCD', x: 63, y: 56 },
+        { slot: 7, role: 'MCD', x: 37, y: 56 },
+        { slot: 8, role: 'ED',  x: 80, y: 36 },
+        { slot: 9, role: 'MP',  x: 50, y: 37 },
+        { slot: 10, role: 'EI', x: 20, y: 36 },
+        { slot: 11, role: 'DC', x: 50, y: 16 }
+    ],
+    '3-5-2': [
+        { slot: 1, role: 'POR', x: 50, y: 90 },
+        { slot: 2, role: 'DFC', x: 74, y: 75 },
+        { slot: 3, role: 'DFC', x: 50, y: 77 },
+        { slot: 4, role: 'DFC', x: 26, y: 75 },
+        { slot: 5, role: 'CAD', x: 86, y: 50 },
+        { slot: 6, role: 'MC',  x: 66, y: 52 },
+        { slot: 7, role: 'MCD', x: 50, y: 57 },
+        { slot: 8, role: 'MC',  x: 34, y: 52 },
+        { slot: 9, role: 'CAI', x: 14, y: 50 },
+        { slot: 10, role: 'DC', x: 62, y: 21 },
+        { slot: 11, role: 'DC', x: 38, y: 21 }
+    ]
+};
+
+function switchMatchTab(tab) {
+    const isTactical = tab === 'tactical';
+    document.getElementById('md-panel-callup').classList.toggle('hidden', isTactical);
+    document.getElementById('md-panel-tactical').classList.toggle('hidden', !isTactical);
+
+    document.getElementById('md-tab-callup').className = !isTactical
+        ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-400'
+        : 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white';
+
+    document.getElementById('md-tab-tactical').className = isTactical
+        ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-400 flex items-center gap-1.5'
+        : 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5';
+
+    if (isTactical) {
+        document.getElementById('tactical-formation-select').value = state.tacticalFormation;
+        renderTacticalPitch();
+    }
+}
+
+function changeTacticalFormation(formation) {
+    state.tacticalFormation = formation;
+    renderTacticalPitch();
+}
+
+function renderTacticalPitch() {
+    const nodes = FORMATIONS_MAP[state.tacticalFormation] || FORMATIONS_MAP['4-3-3'];
+    const appearances = state.currentMatchData?.appearances || [];
+    const layer = document.getElementById('pitch-nodes-layer');
+
+    layer.innerHTML = nodes.map(n => {
+        const assignedPlayerId = state.tacticalSlots[n.slot];
+        const playerApp = appearances.find(a => a.playerId === assignedPlayerId);
+        const isSelected = state.selectedPitchSlot === n.slot;
+
+        const tokenStyle = playerApp
+            ? 'bg-slate-950 text-emerald-400 border-2 border-emerald-400'
+            : 'bg-slate-900/80 text-slate-400 border border-dashed border-slate-400';
+
+        const surname = playerApp
+            ? (playerApp.playerFullName.split(' ').slice(1).join(' ') || playerApp.playerFullName)
+            : n.role;
+
+        return `
+            <div onclick="selectPitchSlot(${n.slot})" class="pitch-node ${isSelected ? 'selected' : ''}" style="left: ${n.x}%; top: ${n.y}%;">
+                <div class="pitch-token ${tokenStyle}">${playerApp ? playerApp.shirtNumber : '+'}</div>
+                <span class="mt-1 px-2 py-0.5 rounded bg-slate-950/90 text-[10px] font-bold text-white shadow whitespace-nowrap border border-slate-800">
+                    ${surname}
+                </span>
+            </div>
+        `;
+    }).join('');
+
+    updateSlotAssignerUI();
+}
+
+function selectPitchSlot(slot) {
+    state.selectedPitchSlot = slot;
+    renderTacticalPitch();
+}
+
+function updateSlotAssignerUI() {
+    const nodes = FORMATIONS_MAP[state.tacticalFormation] || FORMATIONS_MAP['4-3-3'];
+    const slotMeta = nodes.find(n => n.slot === state.selectedPitchSlot) || nodes[0];
+    document.getElementById('tactical-selected-slot-label').textContent = `Posición #${slotMeta.slot} · ${slotMeta.role}`;
+
+    const appearances = state.currentMatchData?.appearances || [];
+    const select = document.getElementById('tactical-player-assign');
+    const currentAssigned = state.tacticalSlots[slotMeta.slot] || '';
+
+    select.innerHTML = `<option value="">-- Seleccionar jugador convocado --</option>` + appearances.map(a => {
+        const usedInOtherSlot = Object.entries(state.tacticalSlots)
+            .some(([s, pId]) => Number(s) !== slotMeta.slot && pId === a.playerId);
+        return `<option value="${a.playerId}" ${a.playerId === currentAssigned ? 'selected' : ''}>
+            #${a.shirtNumber} ${a.playerFullName} (${POSITION_META[a.position]?.short})${usedInOtherSlot ? ' [En campo]' : ''}
+        </option>`;
+    }).join('');
+}
+
+function assignPlayerToSelectedSlot(playerIdStr) {
+    if (!playerIdStr) {
+        clearSelectedPitchSlot();
+        return;
+    }
+    const playerId = parseInt(playerIdStr, 10);
+    // Si el jugador estaba en otro puesto, lo movemos al nuevo puesto
+    Object.keys(state.tacticalSlots).forEach(s => {
+        if (state.tacticalSlots[s] === playerId) {
+            delete state.tacticalSlots[s];
+        }
+    });
+    state.tacticalSlots[state.selectedPitchSlot] = playerId;
+
+    // Avanzar automáticamente al siguiente hueco vacío
+    for (let i = 1; i <= 11; i++) {
+        if (!state.tacticalSlots[i]) {
+            state.selectedPitchSlot = i;
+            break;
+        }
+    }
+    renderTacticalPitch();
+}
+
+function clearSelectedPitchSlot() {
+    delete state.tacticalSlots[state.selectedPitchSlot];
+    renderTacticalPitch();
+}
+
+function autoFillLineupFromStarters() {
+    const appearances = state.currentMatchData?.appearances || [];
+    const starters = appearances.filter(a => a.callUpStatus === 'STARTER').slice(0, 11);
+    if (!starters.length) {
+        showToast('No hay jugadores marcados como Titular en la convocatoria todavía', 'info');
+        return;
+    }
+    state.tacticalSlots = {};
+    starters.forEach((s, idx) => {
+        state.tacticalSlots[idx + 1] = s.playerId;
+    });
+    renderTacticalPitch();
+}
+
+async function saveTacticalLineup() {
+    try {
+        const updatedMatch = await api.updateMatchLineup(state.currentMatchId, {
+            formation: state.tacticalFormation,
+            slots: state.tacticalSlots
+        });
+        state.currentMatchData = updatedMatch;
+        showToast('Once inicial y pizarra táctica guardados', 'success');
+        openMatchDetail(state.currentMatchId);
+        switchMatchTab('tactical');
     } catch (err) {
         showToast(err.message, 'error');
     }

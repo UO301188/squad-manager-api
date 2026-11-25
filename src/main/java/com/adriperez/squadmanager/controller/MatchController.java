@@ -69,4 +69,11 @@ public class MatchController {
         matchService.removePlayerFromMatch(matchId, playerId);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}/lineup")
+    public ResponseEntity<MatchDetailResponseDTO> updateMatchLineup(
+            @PathVariable Long id,
+            @Valid @RequestBody LineupRequestDTO dto) {
+        return ResponseEntity.ok(matchService.updateLineup(id, dto));
+    }
 }
