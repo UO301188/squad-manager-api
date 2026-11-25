@@ -77,6 +77,7 @@ const api = {
     updateMatchAppearance: (matchId, playerId, payload) => httpRequest(`/matches/${matchId}/appearances/${playerId}`, { method: 'PUT', body: JSON.stringify(payload) }),
     removePlayerFromMatch: (matchId, playerId) => httpRequest(`/matches/${matchId}/appearances/${playerId}`, { method: 'DELETE' }),
     updateMatchLineup: (matchId, payload) => httpRequest(`/matches/${matchId}/lineup`, { method: 'PUT', body: JSON.stringify(payload) }),
+    getTeamStats: () => httpRequest('/matches/team-stats'),
     downloadMatchCallUpPdf: async (matchId, includeRoles = false) => {
         const token = localStorage.getItem('squad_token');
         const response = await fetch(`${API_BASE}/matches/${matchId}/callup-pdf?includeRoles=${includeRoles}`, {
@@ -112,4 +113,6 @@ const api = {
     deleteTraining: (id) => httpRequest(`/trainings/${id}`, { method: 'DELETE' }),
     registerAttendance: (sessionId, payload) => httpRequest(`/trainings/${sessionId}/attendances`, { method: 'POST', body: JSON.stringify(payload) }),
     updateAttendance: (sessionId, playerId, payload) => httpRequest(`/trainings/${sessionId}/attendances/${playerId}`, { method: 'PUT', body: JSON.stringify(payload) })
+
+
 };

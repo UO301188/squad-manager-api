@@ -309,4 +309,96 @@ public class MatchService {
 
         matchEventRepository.delete(event);
     }
+
+    public TeamStatsResponseDTO getTeamStats() {
+        Long userId = currentUserService.getCurrentUser().getId();
+        List<Match> finishedMatches = matchRepository.findByUserIdOrderByMatchDateAsc(userId)
+                .stream()
+                .filter(m -> m.getGoalsFor() != null && m.getGoalsAgainst() != null)
+                .toList();
+
+        int wins = 0, draws = 0, losses = 0;
+        int goalsFor = 0, goalsAgainst = 0, cleanSheets = 0;
+
+        int homePlayed = 0, homeWins = 0, homeDraws = 0, homeLosses = 0, homeGf = 0, homeGa = 0;
+        int awayPlayed = 0, awayWins = 0, awayDraws = 0, awayLosses = 0, awayGf = 0, awayGa = 0;
+
+        List<TeamStatsResponseDTO.RecentMatchFormDTO> formList = new ArrayList<>();
+
+        for (Match m : finishedMatches) {
+            int gf = m.getGoalsFor();
+            int ga = m.getGoalsAgainst();
+            boolean isHome = Boolean.TRUE.equals(m.getHomeMatch());
+
+            goalsFor += gf;
+            goalsAgainst += ga;
+            if (ga == 0) {
+                cleanSheets++;
+            }
+
+            String resultCode;
+            if (gf > ga) {
+                wins++;
+                resultCode = "W";
+                if (isHome) homeWins++; else awayWins++;
+            } else if (gf == ga) {
+                draws++;
+                resultCode = "D";
+                if (isHome) homeDraws++; else awayDraws++;
+            } else {
+                losses++;
+                resultCode = "L";
+                if (isHome) homeLosses++; else awayLosses++;
+            }
+
+            if (isHome) {
+                homePlayed++;
+                homeGf += gf;
+                homeGa += ga;
+            } else {
+                awayPlayed++;
+                awayGf += gf;
+                awayGa += ga;
+            }
+
+            formList.add(new TeamStatsResponseDTO.RecentMatchFormDTO(
+                    m.getId(), m.getOpponent(), isHome, gf, ga, resultCode
+            ));
+        }
+
+        int totalPlayed = finishedMatches.size();
+        int points = (wins * 3) + draws;
+        double winPct = totalPlayed > 0 ? Math.round((wins * 1000.0) / totalPlayed) / 10.0 : 0.0;
+        double avgGf = totalPlayed > 0 ? Math.round((goalsFor * 100.0) / totalPlayed) / 100.0 : 0.0;
+        double avgGa = totalPlayed > 0 ? Math.round((goalsAgainst * 100.0) / totalPlayed) / 100.0 : 0.0;
+
+        // Últimos 5 partidos disputados
+        int fromIndex = Math.max(0, formList.size() - 5);
+        List<TeamStatsResponseDTO.RecentMatchFormDTO> recentForm = formList.subList(fromIndex, formList.size());
+
+        TeamStatsResponseDTO.VenueSplitDTO homeSplit = new TeamStatsResponseDTO.VenueSplitDTO(
+                homePlayed, homeWins, homeDraws, homeLosses, homeGf, homeGa, (homeWins * 3) + homeDraws
+        );
+        TeamStatsResponseDTO.VenueSplitDTO awaySplit = new TeamStatsResponseDTO.VenueSplitDTO(
+                awayPlayed, awayWins, awayDraws, awayLosses, awayGf, awayGa, (awayWins * 3) + awayDraws
+        );
+
+        return new TeamStatsResponseDTO(
+                totalPlayed,
+                wins,
+                draws,
+                losses,
+                points,
+                winPct,
+                goalsFor,
+                goalsAgainst,
+                goalsFor - goalsAgainst,
+                avgGf,
+                avgGa,
+                cleanSheets,
+                recentForm,
+                homeSplit,
+                awaySplit
+        );
+    }
 }

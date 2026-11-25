@@ -235,10 +235,11 @@ function setupEventListeners() {
 // ==================== DASHBOARD ====================
 async function loadDashboard() {
     try {
-        const [players, matches, stats] = await Promise.all([
+        const [players, matches, stats, teamStats] = await Promise.all([
             api.getPlayers(),
             api.getMatches(),
-            api.getAllPlayersStats()
+            api.getAllPlayersStats(),
+            api.getTeamStats()
         ]);
 
         state.players = players;
@@ -268,11 +269,85 @@ async function loadDashboard() {
         document.getElementById('kpi-avg-attendance').textContent = `${avgAttendance}%`;
         document.getElementById('kpi-avg-rpe').textContent = `RPE medio: ${avgRpe}`;
 
+        renderTeamPerformance(teamStats);
         renderDashboardCharts(players, stats);
         renderDashboardLists(matches, stats);
     } catch (err) {
         showToast(err.message, 'error');
     }
+}
+
+function renderTeamPerformance(t) {
+    if (!t) return;
+
+    // Racha últimos 5 partidos
+    const formContainer = document.getElementById('team-recent-form');
+    if (!t.recentForm || !t.recentForm.length) {
+        formContainer.innerHTML = `<span class="text-xs text-slate-500">Sin partidos disputados</span>`;
+    } else {
+        const badges = {
+            W: { letter: 'V', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' },
+            D: { letter: 'E', cls: 'bg-amber-500/20 text-amber-400 border-amber-500/40' },
+            L: { letter: 'D', cls: 'bg-rose-500/20 text-rose-400 border-rose-500/40' }
+        };
+        formContainer.innerHTML = t.recentForm.map(m => {
+            const b = badges[m.result] || badges.D;
+            const title = `${m.goalsFor}-${m.goalsAgainst} vs ${m.opponent} (${m.homeMatch ? 'Local' : 'Visitante'})`;
+            return `<span title="${title}" class="w-7 h-7 rounded-lg border font-mono font-extrabold text-xs flex items-center justify-center cursor-help ${b.cls}">${b.letter}</span>`;
+        }).join('');
+    }
+
+    // Tarjetas resumen
+    document.getElementById('team-record').textContent = `${t.wins}V · ${t.draws}E · ${t.losses}D`;
+    document.getElementById('team-points-winrate').textContent = `${t.points} pts (${t.winPercentage.toFixed(0)}%)`;
+    const diffPrefix = t.goalDifference > 0 ? '+' : '';
+    document.getElementById('team-goals-balance').textContent = `${t.goalsFor} / ${t.goalsAgainst} (${diffPrefix}${t.goalDifference})`;
+    document.getElementById('team-clean-sheets').textContent = `${t.cleanSheets} / ${t.totalPlayed} PJ`;
+
+    // Local vs Visitante
+    const h = t.homeStats;
+    const a = t.awayStats;
+    document.getElementById('team-home-summary').textContent = `${h.played} PJ · ${h.wins}V-${h.draws}E-${h.losses}D · ${h.goalsFor}:${h.goalsAgainst} goles`;
+    document.getElementById('team-home-points').textContent = `${h.points} pts`;
+
+    document.getElementById('team-away-summary').textContent = `${a.played} PJ · ${a.wins}V-${a.draws}E-${a.losses}D · ${a.goalsFor}:${a.goalsAgainst} goles`;
+    document.getElementById('team-away-points').textContent = `${a.points} pts`;
+
+    // Gráfico comparativo Casa vs Fuera
+    const ctx = document.getElementById('chart-home-away').getContext('2d');
+    if (state.charts.homeAway) state.charts.homeAway.destroy();
+
+    state.charts.homeAway = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Puntos', 'Goles Favor', 'Goles Contra'],
+            datasets: [
+                {
+                    label: 'Local',
+                    data: [h.points, h.goalsFor, h.goalsAgainst],
+                    backgroundColor: '#10b981',
+                    borderRadius: 6
+                },
+                {
+                    label: 'Visitante',
+                    data: [a.points, a.goalsFor, a.goalsAgainst],
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } }
+            },
+            scales: {
+                x: { ticks: { color: '#94a3b8', font: { size: 11 } }, grid: { display: false } },
+                y: { beginAtZero: true, ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: 'rgba(148,163,184,0.08)' } }
+            }
+        }
+    });
 }
 
 function renderDashboardCharts(players, stats) {

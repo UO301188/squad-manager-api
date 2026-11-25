@@ -209,6 +209,69 @@
                     </div>
                 </div>
 
+                <!-- Panel de Rendimiento Colectivo -->
+                <div class="glass-card p-5 rounded-2xl space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i data-lucide="shield" class="w-4 h-4 text-emerald-400"></i> Rendimiento Colectivo y Racha del Equipo
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Balance oficial de resultados, solidez defensiva y comparativa Casa vs. Fuera</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mr-1">Últimos 5:</span>
+                            <div id="team-recent-form" class="flex items-center gap-1.5"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                        <!-- Métricas Colectivas -->
+                        <div class="lg:col-span-7 space-y-4">
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <div class="bg-pitch-900/90 border border-slate-800 rounded-xl p-3">
+                                    <span class="text-[10px] uppercase text-slate-400 block">Balance (V-E-D)</span>
+                                    <span id="team-record" class="font-mono font-extrabold text-sm text-white mt-1 block">-</span>
+                                </div>
+                                <div class="bg-pitch-900/90 border border-slate-800 rounded-xl p-3">
+                                    <span class="text-[10px] uppercase text-slate-400 block">Puntos / % Vict.</span>
+                                    <span id="team-points-winrate" class="font-mono font-extrabold text-sm text-emerald-400 mt-1 block">-</span>
+                                </div>
+                                <div class="bg-pitch-900/90 border border-slate-800 rounded-xl p-3">
+                                    <span class="text-[10px] uppercase text-slate-400 block">Goles (GF / GC)</span>
+                                    <span id="team-goals-balance" class="font-mono font-extrabold text-sm text-blue-400 mt-1 block">-</span>
+                                </div>
+                                <div class="bg-pitch-900/90 border border-slate-800 rounded-xl p-3">
+                                    <span class="text-[10px] uppercase text-slate-400 block">Porterías a Cero</span>
+                                    <span id="team-clean-sheets" class="font-mono font-extrabold text-sm text-amber-400 mt-1 block">-</span>
+                                </div>
+                            </div>
+
+                            <!-- Comparativa Local vs Visitante -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div class="bg-pitch-900/70 border border-emerald-500/20 rounded-xl p-3.5 flex items-center justify-between">
+                                    <div>
+                                        <span class="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">Como Local</span>
+                                        <p id="team-home-summary" class="text-xs text-slate-300 mt-1 font-mono">-</p>
+                                    </div>
+                                    <span id="team-home-points" class="font-mono font-extrabold text-lg text-emerald-400">0 pts</span>
+                                </div>
+                                <div class="bg-pitch-900/70 border border-blue-500/20 rounded-xl p-3.5 flex items-center justify-between">
+                                    <div>
+                                        <span class="text-[10px] font-mono uppercase tracking-wider text-blue-400 font-bold">Como Visitante</span>
+                                        <p id="team-away-summary" class="text-xs text-slate-300 mt-1 font-mono">-</p>
+                                    </div>
+                                    <span id="team-away-points" class="font-mono font-extrabold text-lg text-blue-400">0 pts</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico Local vs Visitante -->
+                        <div class="lg:col-span-5 h-48">
+                            <canvas id="chart-home-away"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Gráficos -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="glass-card p-5 rounded-2xl lg:col-span-2">
